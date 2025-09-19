@@ -1,0 +1,64 @@
+NKJV: Redemption: grace, salvation, cross, eternal life
+NKJV: Faith: belief, trust, assurance
+HSV: Aanbidding: aanbidding, lof, loven, zang, zingen, muziek, knielen 
+HSV: Genade: genade, vergeving, vergeven, redding, verzoening, verlossing, liefde, barmhartigheid 
+HSV: Geloof: geloof, vertrouwen, gerechtigheid, hoop
+HSV: Gebed: gebed, bidden, knielen
+HSV: Hemel: hemel, troon, engelen, heerlijkheid
+HSV: Israël: israël, verbond, land, stammen, tempel, Jeruzalem, volk
+HSV: Jezus: jezus, heer, zoon, herder, verlosser
+HSV: Koninkrijk: koninkrijk, koning, troon, gerechtigheid, vrede, vreugde, eeuwig
+HSV: Kruis: kruis, bloed, offer, lijden, gehoorzaamheid, dood, overwinning
+HSV: Liefde: liefde, barmhartigheid, trouw, gebod, naaste, broeder, vergeving
+HSV: Zonde: zonde, zonden, overtreding, overtredingen, schuld, ongerechtigheid, kwaad
+NKJV: redemption: grace, salvation, cross, blood, forgiveness, atonement, resurrection, faith, mercy, freedom
+NKJV: israel: covenant, promise, land, tribes, jerusalem, temple, exile, return, nation, chosen
+NKJV: creation: beginning, earth, heavens, light, eden, man, woman, image, sea, dominion
+NKJV: heaven: eternal, angels, throne, worship, glory, holy, kingdom, city, gates, life
+NKJV: holiness: sanctify, purity, righteousness, temple, priest, altar, obedience, spirit, covenant, devotion
+NKJV: faith: believe, trust, hope, promise, obedience, prayer, endurance, shield, righteousness, heart
+NKJV: love: charity, kindness, truth, mercy, forgiveness, neighbor, brother, commandment, sacrifice, joy
+NKJV: grace: gift, salvation, mercy, righteousness, justified, faith, gospel, truth, peace, humility
+NKJV: prayer: supplication, thanksgiving, intercession, faith, praise, worship, cry, call, seek, answer
+NKJV: covenant: promise, blood, everlasting, law, oath, nation, mercy, chosen, obedience, generations
+NKJV: messiah: christ, savior, king, shepherd, lamb, prophet, redeemer, servant, word, light
+NKJV: cross: crucified, nails, blood, sacrifice, death, forgiveness, redemption, crown, resurrection, victory
+NKJV: resurrection: risen, tomb, angel, stone, victory, life, immortal, witness, eternal, promise
+NKJV: spirit: holy, comforter, power, gifts, baptism, truth, seal, guidance, life, witness
+NKJV: law: commandment, covenant, tablets, obedience, priest, sacrifice, sabbath, judgment, justice, teaching
+NKJV: sin: transgression, guilt, death, temptation, evil, fall, darkness, bondage, shame, confession
+NKJV: forgiveness: mercy, pardon, repentance, blood, cross, remission, love, peace, healing, justification
+NKJV: gospel: good news, kingdom, christ, salvation, preaching, word, cross, grace, life, light
+NKJV: kingdom: heaven, throne, king, reign, dominion, power, eternal, inheritance, righteousness, crown
+NKJV: prophecy: vision, dream, revelation, prophet, sign, promise, fulfillment, judgment, message, voice
+NKJV: prophets: isaiah, jeremiah, ezekiel, daniel, elijah, elisha, hosea, amos, jonah, micah
+NKJV: apostles: peter, james, john, andrew, thomas, matthew, paul, barnabas, luke, mark
+NKJV: paul: apostle, letters, missionary, gentiles, grace, faith, journey, epistle, servant, crown
+NKJV: jerusalem: temple, mount, zion, walls, gates, throne, worship, exile, return, holy
+NKJV: bethlehem: city, david, manger, star, shepherds, angel, birth, mary, prophecy, savior
+NKJV: nazareth: galilee, jesus, carpenter, mary, synagogue, prophet, disciples, faith, sabbath, obedience
+NKJV: galilee: sea, fishing, disciples, preaching, healing, mountain, crowd, parables, storm, faith
+NKJV: jordan: river, baptism, john, water, crossing, joshua, ark, elijah, stones, promise
+NKJV: exodus: moses, egypt, pharaoh, plagues, passover, sea, wilderness, manna, law, deliverance
+NKJV: passover: lamb, blood, unleavened, egypt, angel, firstborn, feast, exodus, family, covenant
+NKJV: tabernacle: ark, lampstand, altar, priest, sacrifice, veil, incense, bread, holy place, glory
+NKJV: temple: solomon, house, prayer, sacrifice, priest, altar, veil, worship, fire, prophecy
+NKJV: ark: covenant, mercy seat, tablets, manna, priest, presence, veil, levites, jordan, david
+NKJV: mount sinai: moses, fire, cloud, trumpet, law, tablets, covenant, mountain, commandments, presence
+NKJV: mount zion: city, david, temple, throne, worship, joy, songs, deliverance, praise, eternal
+NKJV: bethany: mary, martha, lazarus, jesus, house, supper, anoint, disciples, faith, witness
+NKJV: gethsemane: garden, prayer, agony, disciples, cup, betrayal, arrest, sorrow, obedience, hour
+NKJV: golgotha: skull, cross, crucifixion, nails, crown, death, darkness, spear, blood, resurrection
+NKJV: pentecost: spirit, tongues, fire, apostles, nations, gospel, preaching, baptism, gift, church
+NKJV: church: body, christ, assembly, elders, deacons, fellowship, worship, spirit, unity, bride
+NKJV: worship: praise, song, psalms, joy, sacrifice, holy, voice, temple, spirit, thanksgiving, 
+NKJV: judgment: throne, books, fire, wrath, righteous, wicked, resurrection, justice, separation, day
+NKJV: angels: messenger, host, wings, cherubim, throne, power, trumpet, deliver, guard, light
+NKJV: satan: devil, serpent, accuser, deceiver, tempter, enemy, darkness, ruler, pride, devour
+NKJV: moses: egypt, pharaoh, rod, passover, red sea, wilderness, law, covenant, leader, prophet
+NKJV: david: shepherd, harp, anointed, king, psalms, covenant, throne, battle, promise, repentance
+NKJV: abraham: faith, promise, covenant, altar, sacrifice, blessing, seed, land, righteousness, nations
+NKJV: joseph: dream, coat, egypt, slave, prison, famine, brothers, forgiveness, ruler, reunion
+NKJV: peter: fisherman, disciple, confession, denial, tears, restored, rock, apostle, preaching, martyr
+NKJV: john: beloved, apostle, gospel, love, truth, revelation, prophecy, light, elder, fellowship
+HSV: Geen_thema: Voeg zelf woorden toe
