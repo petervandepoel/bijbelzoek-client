@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useApp } from "./context/AppContext.jsx";
 import BeginOpnieuwButton from "./components/BeginOpnieuwButton.jsx";
-import SearchPage from "./pages/SearchPage";
-
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
