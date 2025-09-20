@@ -6,7 +6,7 @@ import WordFrequencyChart from "../components/WordFrequencyChart";
 import SearchResults from "../components/SearchResults";
 import ChapterModal from "../components/ChapterModal";
 import { useApp } from "../context/AppContext";
-import API_BASE from "../config";   // 🔹 nieuwe config import
+import API_BASE from "../config";   // 🔹 API base url
 
 export default function SearchPage() {
   const { version, searchMode, savedState, setSavedState, addFavChart } = useApp();
@@ -74,7 +74,7 @@ export default function SearchPage() {
         const qs = new URLSearchParams({
           version,
           mode: searchMode || "or",
-          q: words.join(","),
+          words: words.join(","),        // 🔹 FIX: gebruik altijd words=
           ...(book ? { book } : {}),
           page: "1",
           resultLimit: "50",
