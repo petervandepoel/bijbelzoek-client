@@ -63,7 +63,11 @@ export default function SearchPage() {
   const performSearch = useCallback(
     async (q, book) => {
       const words = (q || "").split(",").map((w) => w.trim()).filter(Boolean);
-      if (!words.length) { setResults([]); return; }
+      if (!words.length) {
+        console.log("⚠️ Geen zoekwoorden → results leeg");
+        setResults([]);
+        return;
+      }
 
       setLoading(true);
       try {
@@ -76,10 +80,17 @@ export default function SearchPage() {
           resultLimit: "50",
         }).toString();
 
-        const res = await fetch(`/api/search?${qs}`);
+        const url = `/api/search?${qs}`;
+        console.log("🔎 Fetching:", url);
+
+        const res = await fetch(url);
         const data = await res.json();
+        console.log("🔎 API response:", data);
+
         setResults(Array.isArray(data.results) ? data.results : []);
         setSavedState?.({ query: q, results: data.results, chartWords: words });
+      } catch (err) {
+        console.error("❌ Search fetch error:", err);
       } finally {
         setLoading(false);
       }
