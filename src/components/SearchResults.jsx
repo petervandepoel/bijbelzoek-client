@@ -1,4 +1,3 @@
-// client/src/components/SearchResults.jsx
 import React, { useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import StarButton from "./StarButton.jsx";
@@ -13,7 +12,6 @@ export default function SearchResults({
 }) {
   const { isFavText, addFavText, removeFavText } = useApp();
 
-  // Log elke keer als results verandert
   useEffect(() => {
     console.log("🔎 [SearchResults] results prop:", results);
   }, [results]);
@@ -26,16 +24,16 @@ export default function SearchResults({
     );
   }
 
-  // Highlight helper
   const highlightHtml = (text) => {
     if (!queryWords?.length) return text;
-    let safe = text?.replace(/[&<>"']/g, (c) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    }[c])) ?? "";
+    let safe =
+      text?.replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      }[c])) ?? "";
 
     queryWords.forEach((word) => {
       if (!word) return;
@@ -51,30 +49,19 @@ export default function SearchResults({
   return (
     <div className="space-y-4">
       {results.map((item, idx) => {
-        // ✅ verbeterde ref fallback
+        // ✅ Betere ref fallback zodat favorieten altijd werken
         const ref =
           item.ref ||
-          item.reference ||
           (item.book && item.chapter && item.verse
             ? `${item.book} ${item.chapter}:${item.verse}`
-            : "") ||
-          item.title ||
-          "";
+            : `ID-${item._id || idx}`);
 
-        // ✅ verbeterde text fallback
         const text =
           item.text ?? item.snippet ?? item.content ?? "[geen tekst beschikbaar]";
 
         const fav = isFavText(version, ref);
 
-        // 🔎 Log elk individueel resultaat
-        console.log("🔎 [SearchResults] Rendering item:", {
-          ref,
-          book: item.book,
-          chapter: item.chapter,
-          verse: item.verse,
-          text,
-        });
+        console.log("🔎 Rendering item:", { ref, fav, book: item.book, text });
 
         return (
           <div
@@ -83,16 +70,17 @@ export default function SearchResults({
           >
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-indigo-600 dark:text-indigo-300">
-                {ref || "[geen ref]"}
+                {ref}
               </h4>
               <div className="flex gap-2">
                 <StarButton
                   active={fav}
-                  onClick={() =>
+                  onClick={() => {
+                    console.log("⭐ toggle", { ref, fav });
                     fav
                       ? removeFavText(version, ref)
-                      : addFavText(version, ref, text)
-                  }
+                      : addFavText(version, ref, text);
+                  }}
                 />
                 {item.book && (
                   <ReadChapterButton
