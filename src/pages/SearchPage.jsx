@@ -6,6 +6,7 @@ import WordFrequencyChart from "../components/WordFrequencyChart";
 import SearchResults from "../components/SearchResults";
 import ChapterModal from "../components/ChapterModal";
 import { useApp } from "../context/AppContext";
+import API_BASE from "../config";   // 🔹 nieuwe config import
 
 export default function SearchPage() {
   const { version, searchMode, savedState, setSavedState, addFavChart } = useApp();
@@ -64,7 +65,6 @@ export default function SearchPage() {
     async (q, book) => {
       const words = (q || "").split(",").map((w) => w.trim()).filter(Boolean);
       if (!words.length) {
-        console.log("⚠️ Geen zoekwoorden → results leeg");
         setResults([]);
         return;
       }
@@ -80,7 +80,7 @@ export default function SearchPage() {
           resultLimit: "50",
         }).toString();
 
-        const url = `/api/search?${qs}`;
+        const url = `${API_BASE}/api/search?${qs}`;
         console.log("🔎 Fetching:", url);
 
         const res = await fetch(url);
@@ -139,7 +139,7 @@ export default function SearchPage() {
 
   return (
     <section ref={topRef} className="max-w-7xl mx-auto flex flex-col">
-      {/* Grafiek bovenaan, niet sticky */}
+      {/* Grafiek */}
       <div className="py-3 px-1">
         <WordFrequencyChart
           queryWords={queryWords}
