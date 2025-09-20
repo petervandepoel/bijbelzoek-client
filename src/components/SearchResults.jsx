@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+// client/src/components/SearchResults.jsx
+import React from "react";
 import { useApp } from "../context/AppContext";
 import StarButton from "./StarButton.jsx";
 import ReadChapterButton from "./ReadChapterButton.jsx";
@@ -12,10 +13,6 @@ export default function SearchResults({
 }) {
   const { isFavText, addFavText, removeFavText } = useApp();
 
-  useEffect(() => {
-    console.log("🔎 [SearchResults] results prop:", results);
-  }, [results]);
-
   if (!results || results.length === 0) {
     return (
       <p className="text-gray-500 dark:text-gray-400 text-sm">
@@ -26,14 +23,13 @@ export default function SearchResults({
 
   const highlightHtml = (text) => {
     if (!queryWords?.length) return text;
-    let safe =
-      text?.replace(/[&<>"']/g, (c) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;",
-      }[c])) ?? "";
+    let safe = text?.replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    }[c])) ?? "";
 
     queryWords.forEach((word) => {
       if (!word) return;
@@ -49,19 +45,17 @@ export default function SearchResults({
   return (
     <div className="space-y-4">
       {results.map((item, idx) => {
-        // ✅ Betere ref fallback zodat favorieten altijd werken
         const ref =
           item.ref ||
           (item.book && item.chapter && item.verse
             ? `${item.book} ${item.chapter}:${item.verse}`
-            : `ID-${item._id || idx}`);
+            : "") ||
+          "";
 
         const text =
           item.text ?? item.snippet ?? item.content ?? "[geen tekst beschikbaar]";
 
         const fav = isFavText(version, ref);
-
-        console.log("🔎 Rendering item:", { ref, fav, book: item.book, text });
 
         return (
           <div
@@ -70,17 +64,17 @@ export default function SearchResults({
           >
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-indigo-600 dark:text-indigo-300">
-                {ref}
+                {ref || "[geen ref]"}
               </h4>
               <div className="flex gap-2">
+                {/* ⭐ zelfde logica als ChapterModal */}
                 <StarButton
                   active={fav}
-                  onClick={() => {
-                    console.log("⭐ toggle", { ref, fav });
+                  onClick={() =>
                     fav
                       ? removeFavText(version, ref)
-                      : addFavText(version, ref, text);
-                  }}
+                      : addFavText(version, ref, text)
+                  }
                 />
                 {item.book && (
                   <ReadChapterButton
