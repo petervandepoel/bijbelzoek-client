@@ -1,5 +1,5 @@
 // client/src/components/SearchResults.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import StarButton from "./StarButton.jsx";
 import ReadChapterButton from "./ReadChapterButton.jsx";
@@ -13,6 +13,11 @@ export default function SearchResults({
 }) {
   const { isFavText, addFavText, removeFavText } = useApp();
 
+  // Log elke keer als results verandert
+  useEffect(() => {
+    console.log("🔎 [SearchResults] results prop:", results);
+  }, [results]);
+
   if (!results || results.length === 0) {
     return (
       <p className="text-gray-500 dark:text-gray-400 text-sm">
@@ -21,16 +26,17 @@ export default function SearchResults({
     );
   }
 
-  // Helper: highlight zoekwoorden in tekst met escaping
+  // Highlight helper
   const highlightHtml = (text) => {
     if (!queryWords?.length) return text;
-    let safe = text.replace(/[&<>"']/g, (c) => ({
+    let safe = text?.replace(/[&<>"']/g, (c) => ({
       "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
       '"': "&quot;",
       "'": "&#039;",
-    }[c]));
+    }[c])) ?? "";
+
     queryWords.forEach((word) => {
       if (!word) return;
       const regex = new RegExp(`(${word})`, "gi");
@@ -61,6 +67,15 @@ export default function SearchResults({
 
         const fav = isFavText(version, ref);
 
+        // 🔎 Log elk individueel resultaat
+        console.log("🔎 [SearchResults] Rendering item:", {
+          ref,
+          book: item.book,
+          chapter: item.chapter,
+          verse: item.verse,
+          text,
+        });
+
         return (
           <div
             key={idx}
@@ -68,7 +83,7 @@ export default function SearchResults({
           >
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-indigo-600 dark:text-indigo-300">
-                {ref}
+                {ref || "[geen ref]"}
               </h4>
               <div className="flex gap-2">
                 <StarButton
