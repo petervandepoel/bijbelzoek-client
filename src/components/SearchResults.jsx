@@ -1,8 +1,8 @@
 // client/src/components/SearchResults.jsx
 import React from "react";
 import { useApp } from "../context/AppContext";
-import { StarButton } from "./StarButton.jsx";
-import { ReadChapterButton } from "./ReadChapterButton.jsx";
+import StarButton from "./StarButton.jsx";
+import ReadChapterButton from "./ReadChapterButton.jsx";
 
 export default function SearchResults({
   results = [],
