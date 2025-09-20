@@ -1,6 +1,6 @@
 // client/src/pages/SearchPage.jsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Search as SearchIcon, BookOpen } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Search as SearchIcon, BookOpen, ArrowUp } from "lucide-react";
 import FilterPanel from "../components/FilterPanel";
 import WordFrequencyChart from "../components/WordFrequencyChart";
 import SearchResults from "../components/SearchResults";
@@ -10,33 +10,31 @@ import { useApp } from "../context/AppContext";
 export default function SearchPage() {
   const { version, searchMode, savedState, setSavedState, addFavChart } = useApp();
 
-  // UI state
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [selectedBook, setSelectedBook] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Thema’s (zoals Home)
   const [themes, setThemes] = useState([]);
   const [showThemes, setShowThemes] = useState(false);
 
-  // Hoofdstuk modal (zoals Home)
   const [chapter, setChapter] = useState({ open: false, book: "", chapter: 1 });
 
-  // Querywoorden voor grafiek/highlight
-  const queryWords = useMemo(() => {
-    const fromSaved = (savedState?.chartWords?.length ? savedState.chartWords : null);
-    const base = fromSaved ?? query.split(",").map((w) => w.trim()).filter(Boolean);
-    return base;
-  }, [savedState?.chartWords, query]);
+  const [showTop, setShowTop] = useState(false);
+  const topRef = useRef(null);
 
-  // Initial: zet startquery per versie en haal resultaten
+  const queryWords = useMemo(() => {
+    return query.split(",").map((w) => w.trim()).filter(Boolean);
+  }, [query]);
+
+  // Initieel zoekwoorden per versie
   useEffect(() => {
     const initial = version === "HSV" ? "geloof, genade" : "faith, grace";
     setQuery(initial);
-  }, [version]);
+    performSearch(initial, null);
+  }, [version, searchMode]);
 
-  // Thema’s laden (zoals Home)
+  // Thema’s laden
   useEffect(() => {
     (async () => {
       try {
@@ -48,20 +46,20 @@ export default function SearchPage() {
         });
         setThemes(parsed);
       } catch {
-        // optioneel: console.warn("Kon themes.txt niet laden");
+        console.warn("Kon themes.txt niet laden");
       }
     })();
   }, []);
 
-  // Herstel eerder opgeslagen state (zoals Home)
+  // Scroll detector voor TOP-knop
   useEffect(() => {
-    if (savedState?.query !== undefined) {
-      setQuery(savedState.query || "");
-      setResults(savedState.results || []);
-    }
-  }, []); // alleen bij mount
+    const handleScroll = () => {
+      setShowTop(window.scrollY > 200);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-  // Zoekfunctie (sluit aan op nieuwe backend /api/search)
   const performSearch = useCallback(
     async (q, book) => {
       const words = (q || "").split(",").map((w) => w.trim()).filter(Boolean);
@@ -72,7 +70,7 @@ export default function SearchPage() {
         const qs = new URLSearchParams({
           version,
           mode: searchMode || "or",
-          q: words.join(","),                // server ondersteunt q ALIAS
+          q: words.join(","),
           ...(book ? { book } : {}),
           page: "1",
           resultLimit: "50",
@@ -89,13 +87,6 @@ export default function SearchPage() {
     [version, searchMode, setSavedState]
   );
 
-  // Initieel en bij wijzigingen opnieuw zoeken
-  useEffect(() => {
-    if (!query) return;
-    performSearch(query, selectedBook);
-  }, [version, searchMode, query, selectedBook, performSearch]);
-
-  // Handlers — identiek aan Home-gedrag
   const handleSearchSubmit = async (e) => {
     e?.preventDefault();
     setSelectedBook(null);
@@ -112,8 +103,7 @@ export default function SearchPage() {
 
   const onChartDrill = ({ book, word }) => {
     setSelectedBook(book);
-    // zelfde logica als Home: gebruik bestaande query als die er is, anders enkel het aangeklikte woord
-    const nextQ = (query && query.trim().length) ? query : (word || "");
+    const nextQ = word ? word : query;
     performSearch(nextQ, book);
   };
 
@@ -131,40 +121,42 @@ export default function SearchPage() {
 
   const onReadChapter = (book, ch) => setChapter({ open: true, book, chapter: ch });
 
-  return (
-    <section className="max-w-7xl mx-auto h-[calc(100vh-4rem)] flex flex-col">
-      {/* STICKY: grafiek + zoekbalk */}
-      <div className="sticky top-0 z-20 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700">
-        {/* grafiek */}
-        <div className="pt-3 px-1">
-          <WordFrequencyChart
-            queryWords={queryWords}
-            onClickDrill={onChartDrill}
-            onFavChart={onFavChart}
-          />
-        </div>
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    topRef.current?.focus();
+  };
 
-        {/* zoekbalk + thema-button */}
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 px-1 pb-3">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Zoek in de Bijbel... (meerdere woorden met ,)"
-            className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-gray-800"
-          />
-          <button type="submit" className="bg-indigo-500 text-white px-4 py-3 rounded-lg hover:bg-indigo-600">
-            <SearchIcon className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowThemes((s) => !s)}
-            className="flex items-center gap-2 bg-white dark:bg-gray-800 shadow-md rounded-lg px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            <BookOpen className="w-5 h-5 text-indigo-500" /> Thema’s
-          </button>
-        </form>
+  return (
+    <section ref={topRef} className="max-w-7xl mx-auto flex flex-col">
+      {/* Grafiek bovenaan, niet sticky */}
+      <div className="py-3 px-1">
+        <WordFrequencyChart
+          queryWords={queryWords}
+          onClickDrill={onChartDrill}
+          onFavChart={onFavChart}
+        />
       </div>
+
+      {/* zoekbalk + thema-button */}
+      <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 px-1 pb-3">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Zoek in de Bijbel... (meerdere woorden met ,)"
+          className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-gray-800"
+        />
+        <button type="submit" className="bg-indigo-500 text-white px-4 py-3 rounded-lg hover:bg-indigo-600">
+          <SearchIcon className="w-5 h-5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowThemes((s) => !s)}
+          className="flex items-center gap-2 bg-white dark:bg-gray-800 shadow-md rounded-lg px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          <BookOpen className="w-5 h-5 text-indigo-500" /> Thema’s
+        </button>
+      </form>
 
       {/* Thema-lijst */}
       {showThemes && (
@@ -182,10 +174,10 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* content: resultaten + filters */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-6 flex-1 overflow-hidden">
-        {/* resultaten scrollen */}
-        <div className="overflow-y-auto pr-2">
+      {/* content */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-6">
+        <div>
+          {loading && <p className="text-sm text-gray-500 mb-2">Zoeken…</p>}
           <SearchResults
             results={results}
             queryWords={queryWords}
@@ -194,8 +186,6 @@ export default function SearchPage() {
             onReadChapter={onReadChapter}
           />
         </div>
-
-        {/* filters rechts */}
         <div>
           <FilterPanel
             queryWords={queryWords}
@@ -215,6 +205,16 @@ export default function SearchPage() {
         book={chapter.book}
         chapter={chapter.chapter}
       />
+
+      {/* TOP helper button */}
+      {showTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 bg-indigo-600 text-white rounded-full p-3 shadow-lg hover:bg-indigo-700"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
+      )}
     </section>
   );
 }
