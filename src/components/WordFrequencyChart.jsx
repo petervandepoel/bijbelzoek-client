@@ -14,7 +14,6 @@ import { useApp } from "../context/AppContext";
 import { BOOKS_NL, BOOKS_EN } from "../utils/books";
 import { Star } from "lucide-react";
 
-// ————— UI kleuren (stabiel en herkenbaar) —————
 const palette = [
   "#6366f1", // indigo
   "#f59e0b", // amber
@@ -28,12 +27,10 @@ const palette = [
   "#fb923c", // orange
 ];
 
-// Canonieke boekenlijst per vertaling
 function canonicalBooks(version) {
   return version === "HSV" ? BOOKS_NL : BOOKS_EN;
 }
 
-// Normaliseer array naar sleutel (voor fav-vergelijking)
 const normalize = (arr) =>
   (arr || [])
     .filter(Boolean)
@@ -42,20 +39,15 @@ const normalize = (arr) =>
 
 const chartKey = (version, words) => JSON.stringify([version, normalize(words)]);
 
-// ————— Diacritics helpers —————
 const stripDia = (s) =>
   String(s || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
 function expandForStats(word) {
-  // Doel: zorgen dat "Israel" ook "Israël" dekt in de stats API (die per woord telt).
-  // We nemen bij 'Israel' (diacritics-onafhankelijk) beide vormen mee.
   const base = String(word || "");
   const nd = stripDia(base).toLowerCase();
-  // Zet de "mooiere" labels voor de aggregatie
   if (nd === "israel") {
-    // De stats-call krijgt beide varianten; we aggregeren ze in de UI tot één balk "Israel".
     return ["Israel", "Israël"];
   }
   return [base];
@@ -66,7 +58,6 @@ export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChar
   const version = app?.version;
   const searchMode = app?.searchMode;
 
-  // Favorieten vanuit context (wanneer beschikbaar)
   const favCharts = app?.favCharts || [];
   const addFavChart = app?.addFavChart;
   const removeFavChart = app?.removeFavChart;
@@ -75,7 +66,6 @@ export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChar
 
   const books = useMemo(() => canonicalBooks(version), [version]);
 
-  // Actieve woorden (UI-labels): dit blijft precies wat de gebruiker heeft ingevoerd
   const wordList = useMemo(() => {
     const w = (queryWords || []).map((s) => s.trim()).filter(Boolean);
     return w.length
@@ -85,20 +75,17 @@ export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChar
       : ["faith", "grace"];
   }, [queryWords, version]);
 
-  // Woorden voor de stats-call (kan extra varianten bevatten, bv. "Israel" + "Israël")
   const statsWords = useMemo(() => {
     const set = new Set();
     wordList.forEach((w) => expandForStats(w).forEach((x) => set.add(x)));
     return Array.from(set);
   }, [wordList]);
 
-  // Favoriet-detectie
   const currentKey = chartKey(version, wordList);
   const isFavorited = useMemo(() => {
     return favCharts.some((c) => chartKey(c.version, c.words) === currentKey);
   }, [favCharts, currentKey]);
 
-  // Data laden en client-side aggregeren (zodat Israel + Israël samen in 1 balk “Israel” zitten)
   useEffect(() => {
     const load = async () => {
       if (!statsWords.length) return;
@@ -108,17 +95,14 @@ export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChar
       );
       const json = await res.json();
 
-      // json.data is per { book, <woord1>: count, <woord2>: count, ... }
       const incoming = Array.isArray(json.data) ? json.data : [];
       const byBook = new Map(incoming.map((row) => [row.book, row]));
 
-      // Aggregatie: bundel eventuele varianten terug tot de "UI-woorden" (wordList)
-      // Voorbeeld: UI-woord "Israel" => som van kolommen "Israel" + "Israël" (als aanwezig)
       const rows = books.map((book) => {
         const baseRow = { book };
         const src = byBook.get(book) || {};
         wordList.forEach((uiWord) => {
-          const variants = expandForStats(uiWord); // bv. ["Israel","Israël"] of alleen ["genade"]
+          const variants = expandForStats(uiWord);
           const sum = variants.reduce((acc, v) => acc + (Number(src[v]) || 0), 0);
           baseRow[uiWord] = sum;
         });
@@ -128,10 +112,8 @@ export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChar
       setData(rows);
     };
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version, searchMode, books, JSON.stringify(statsWords)]);
 
-  // Klik op grafiek → stuur ALLE zoekwoorden door + het gekozen boek
   const handleChartClick = (e) => {
     if (!e || !e.activePayload) return;
     const row = e.activePayload[0]?.payload;
@@ -139,8 +121,8 @@ export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChar
     if (row) {
       onClickDrill?.({
         book: row.book,
-        words: [...wordList],       // **alle** actieve woorden meenemen
-        focusWord: clickedWord || null, // optioneel: welke balk werd exact geklikt
+        words: [...wordList],
+        focusWord: clickedWord || null,
       });
     }
   };
@@ -164,7 +146,6 @@ export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChar
         });
         return;
       }
-      // Fallback naar prop
       onFavChart?.({
         title: `Woordfrequentie: ${wordList.join(", ")} — ${version}`,
         version,
@@ -221,8 +202,7 @@ export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChar
                 key={w}
                 dataKey={w}
                 name={w}
-                // NB: Geen stackId = gegroepeerde balken naast elkaar;
-                // wil je stapelen, zet stackId="a"
+                stackId="a" // ⬅️ zorgt voor stacked bars
                 fill={palette[idx % palette.length]}
               />
             ))}
