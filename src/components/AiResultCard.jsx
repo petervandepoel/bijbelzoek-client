@@ -2,19 +2,18 @@
 import React from "react";
 
 export default function AiResultCard({ result }) {
-  // normaliseer keys (NL varianten inbegrepen)
   const norm = {
     type: result.type,
     title: result.title || result.titel,
     summary: result.summary || result.inleiding || result.samenvatting,
-    central_passages: result.central_passages || result.bijbelteksten,
-    discussion: result.discussion || result.vragen,
     outline:
       result.outline ||
       result.kopjes ||
       result.kopjes_en_inhoud ||
       result.hoofdstukken ||
       result.inhoud,
+    central_passages: result.central_passages || result.bijbelteksten,
+    discussion: result.discussion || result.vragen,
     background: result.background || result.achtergrond,
     application: result.application || result.toepassing,
     prayer: result.prayer || result.gebed,
@@ -25,6 +24,7 @@ export default function AiResultCard({ result }) {
     media: result.media || result.mediaitems,
     date: result.date || result.datum,
     text: result.text,
+    raw: result.raw,
   };
 
   const Section = ({ icon, title, children }) => (
@@ -47,7 +47,7 @@ export default function AiResultCard({ result }) {
         </Section>
       )}
 
-      {/* Outline / Hoofdstukken / Inhoud */}
+      {/* Outline / hoofdstukken */}
       {norm.outline && (
         <Section icon="🗂" title="Structuur">
           {norm.outline.map((o, i) =>
@@ -56,12 +56,10 @@ export default function AiResultCard({ result }) {
             ) : (
               <div key={i} className="mb-2">
                 {o.kop || o.kopje || o.title ? (
-                  <div className="font-medium">
-                    {o.kop || o.kopje || o.title}
-                  </div>
+                  <div className="font-medium">{o.kop || o.kopje || o.title}</div>
                 ) : null}
                 {o.tekst && <p>{o.tekst}</p>}
-                {o.inhoud && Array.isArray(o.inhoud) && (
+                {o.inhoud && (
                   <ul className="list-disc pl-5 space-y-1">
                     {o.inhoud.map((line, j) => (
                       <li key={j}>{line}</li>
@@ -104,11 +102,11 @@ export default function AiResultCard({ result }) {
         </Section>
       )}
 
-      {/* Bijbelstudie specifieke */}
+      {/* Bijbelstudie */}
       {norm.type === "bijbelstudie" && norm.central_passages && (
         <Section icon="📖" title="Centrale gedeelten">
           {norm.central_passages.map((c, i) => (
-            <div key={i} className="mb-3">
+            <div key={i}>
               <div className="font-medium">{c.ref || c.referentie}</div>
               {c.text && (
                 <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-2 rounded">
@@ -130,7 +128,7 @@ export default function AiResultCard({ result }) {
         </Section>
       )}
 
-      {/* Preek specifieke */}
+      {/* Preek */}
       {norm.type === "preek" && norm.background && (
         <Section icon="📚" title="Achtergrond & Verbanden">
           <ul className="list-disc pl-5 space-y-1">
@@ -272,10 +270,15 @@ export default function AiResultCard({ result }) {
         </Section>
       )}
 
-      {/* Fallback */}
+      {/* Fallbacks */}
       {norm.text && !norm.type && (
         <Section icon="📝" title="Resultaat">
           <pre className="whitespace-pre-wrap">{norm.text}</pre>
+        </Section>
+      )}
+      {norm.raw && (
+        <Section icon="⚠️" title="Ongestructureerde output">
+          <pre className="whitespace-pre-wrap text-sm">{norm.raw}</pre>
         </Section>
       )}
     </div>
