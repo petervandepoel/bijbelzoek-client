@@ -267,6 +267,7 @@ export default function Favorites() {
   }
 }
 
+
   // ───────── UI ─────────
   return (
     <section className="max-w-6xl mx-auto p-3 sm:p-4 space-y-6">
@@ -396,6 +397,9 @@ export default function Favorites() {
     )}
   </article>
 ))}
+</div>
+        )}
+      </div>
 
       {/* ====== Favoriete teksten ====== */}
       <div className="space-y-4">
