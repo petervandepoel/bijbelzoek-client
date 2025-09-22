@@ -1,6 +1,12 @@
 // client/src/components/AiResultCard.jsx
 import React, { useState } from "react";
 
+const highlightRefs = (s = "") => {
+  const re = /\b((Gen|Ex|Lev|Num|Deut|Joz|Richt|Rut|1\s?Sam|2\s?Sam|1\s?Kon|2\s?Kon|1\s?Kron|2\s?Kron|Ezra|Neh|Est|Job|Ps|Spr|Pred|Hoogl|Jes|Jer|Kla|Ez\.|Ez|Dan|Hos|Jo\u00ebl|Joz\u00ebl|Amos|Obad|Jona|Micha|Nah|Hab|Zef|Hag|Zach|Mal|Mat|Mark|Luk|Joh|Hand|Rom|1\s?Kor|2\s?Kor|Gal|Ef|Fil|Kol|1\s?Thes|2\s?Thes|1\s?Tim|2\s?Tim|Tit|Filem|Heb|Jak|1\s?Pet|2\s?Pet|1\s?Joh|2\s?Joh|3\s?Joh|Judas|Openb?|Openbaring)\.?\s*\d+:\d+(?:-\d+)?)(?:\b|$)/gi;
+  return String(s).replace(re, (m) => `<span class="font-semibold text-indigo-700">${m}</span>`);
+};
+
+
 const API_BASE = import.meta.env.VITE_API_BASE || ""; // "" for dev proxy
 
 // Helpers
@@ -91,7 +97,7 @@ function SongsTable({ songs }) {
                       {s.link ? (
                         <a
                           className="ml-2 text-indigo-600 hover:underline"
-                          href={s.link}
+                          href={s.link || (`https://www.youtube.com/results?search_query=${encodeURIComponent((s.title||"")+ (s.composer? " "+s.composer : "") )}`)}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -126,6 +132,15 @@ export default function AiResultCard({ result }) {
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [errNews, setErrNews] = useState("");
   const [errMedia, setErrMedia] = useState("");
+
+  React.useEffect(() => {
+    if ((r.kind === "actueelmedia" || s.type === "actueelmedia") && !news?.links?.length && !media?.length) {
+      fetchActueel();
+      fetchMedia();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   async function fetchActueel() {
     try {
@@ -233,7 +248,7 @@ export default function AiResultCard({ result }) {
       {/* Structuur per type */}
       {kind === "bijbelstudie" && (
         <>
-          <Section title="Inleiding">{s.summary}</Section>
+          <Section title="Inleiding">{/* eslint-disable-next-line react/no-danger */}<span dangerouslySetInnerHTML={{ __html: highlightRefs(s.summary) }} /></Section>
           <Section title="Centrale gedeelten">
             <BulletList items={(s.central_passages || []).map(p => `${p.ref} — ${p.reason}`)} />
           </Section>
@@ -252,7 +267,7 @@ export default function AiResultCard({ result }) {
 
       {kind === "preek" && (
         <>
-          <Section title="Inleiding">{s.summary}</Section>
+          <Section title="Inleiding">{/* eslint-disable-next-line react/no-danger */}<span dangerouslySetInnerHTML={{ __html: highlightRefs(s.summary) }} /></Section>
           <Section title="Centrale gedeelten">
             <BulletList items={(s.central_passages || []).map(p => `${p.ref} — ${p.reason}`)} />
           </Section>
@@ -271,7 +286,7 @@ export default function AiResultCard({ result }) {
 
       {kind === "liederen" && (
         <>
-          <Section title="Korte toelichting">{s.summary}</Section>
+          <Section title="Korte toelichting">{/* eslint-disable-next-line react/no-danger */}<span dangerouslySetInnerHTML={{ __html: highlightRefs(s.summary) }} /></Section>
           <Section title="Centrale gedeelten">
             <BulletList items={(s.central_passages || []).map(p => `${p.ref} — ${p.reason}`)} />
           </Section>

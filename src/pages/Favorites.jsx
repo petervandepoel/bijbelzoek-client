@@ -177,7 +177,7 @@ export default function Favorites() {
       const res = await fetch(`${API_BASE}/api/ai/compose/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, extra: extra.trim(), context }),
+        body: JSON.stringify({ mode, extra: extra.trim(), context, format: "prose" }),
       });
       if (!res.ok || !res.body) {
         throw new Error(res.status === 401 ? "AI-sleutel ontbreekt of ongeldig (401)" : `HTTP ${res.status}`);
@@ -227,28 +227,47 @@ export default function Favorites() {
 
       await pump();
 
-      // Try to parse final JSON → store nice structured result
-      const structured = safeJsonParse(acc);
-      const label =
-        mode === "bijbelstudie" ? "Bijbelstudie" :
-        mode === "preek"        ? "Preek"        : "Liederen";
+// Streaming done: fetch the structured JSON (non-stream) so we can render it mooi
+let structured = null;
+try {
+  const res2 = await fetch(`${API_BASE}/api/ai/compose`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode, extra: extra.trim(), context }),
+  });
+  if (res2.ok) {
+    const json = await res2.json();
+    structured = json?.structured || safeJsonParse(json);
+  }
+} catch (_) { /* ignore, fallback to prose */ }
 
-      if (structured && typeof structured === "object") {
-        addAiResult({
-          id: newId(),
-          kind: mode,
-          title: `${label} — gegenereerde opzet`,
-          structured,
-          createdAt: new Date().toISOString(),
-        });
-        // clear live block after success
-        setLive({ running: false, text: "", error: "", preview: null });
-      } else {
-        // keep the streamed text as a fallback result
-        addAiResult({
-          id: newId(),
-          kind: mode,
-          title: `${label} — (stream, ongestructureerd)`,
+const label =
+  mode === "bijbelstudie" ? "Bijbelstudie" :
+  mode === "preek"        ? "Preek"        :
+  mode === "liederen"     ? "Liederen"     :
+  "Actueel & Media";
+
+if (structured && typeof structured === "object") {
+  addAiResult({
+    id: newId(),
+    kind: mode,
+    title: `${label} — gegenereerde opzet`,
+    structured,
+    createdAt: new Date().toISOString(),
+  });
+  // clear live block after success
+  setLive({ running: false, text: "", error: "", preview: null });
+} else {
+  // keep the streamed text (prose) as a fallback result
+  addAiResult({
+    id: newId(),
+    kind: mode,
+    title: `${label} — (stream, proza)`,
+    text: acc,
+    createdAt: new Date().toISOString(),
+  });
+  setLive({ running: false, text: "", error: "", preview: null });
+}eam, ongestructureerd)`,
           text: acc,
           createdAt: new Date().toISOString(),
         });
@@ -303,12 +322,13 @@ export default function Favorites() {
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
         <h2 className="text-lg font-semibold mb-3">🧠 Genereer opzet</h2>
 
-        <div className="grid sm:grid-cols-3 gap-3 mb-3">
+        <div className="grid sm:grid-cols-4 gap-3 mb-3">
           {[
             { id: "bijbelstudie", title: "Bijbelstudie", desc: "Indeling, gedeelten, vragen, toepassing." },
             { id: "preek",        title: "Preek",        desc: "Hoofdlijnen, Christus centraal, achtergrond." },
             { id: "liederen",     title: "Liederen",     desc: "Psalmen • Opwekking • Op Toonhoogte." },
-          ].map((opt) => (
+                      { id: "actueelmedia", title: "Actueel & Media", desc: "Recente artikelen • video • beelden." },
+].map((opt) => (
             <button
               key={opt.id}
               onClick={() => setMode(opt.id)}
