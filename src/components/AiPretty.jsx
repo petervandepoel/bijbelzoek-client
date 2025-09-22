@@ -5,6 +5,21 @@ export default function AiPretty({ text = "" }) {
   const verseRefRe =
     /\b((Gen|Ex|Lev|Num|Deut|Joz|Richt|Rut|1 Sam|2 Sam|1 Kon|2 Kon|1 Kron|2 Kron|Ezra|Neh|Est|Job|Ps(?:alm|almen)?|Spr|Pred|Hoogl|Jes|Jer|Kla|Ezech|Dan|Hos|Joël|Amos|Obad|Jona|Micha|Nah|Hab|Zef|Hag|Zach|Mal|Mat|Matt|Marcus|Mar|Luk|Lucas|Joh|Johannes|Hand|Rom|Romeinen|1 Kor|2 Kor|Gal|Ef|Efeze|Fil|Filippenzen|Kol|1 Thess|2 Thess|1 Tim|2 Tim|Tit|Filem|Hebr?|Jak|1 Petr|2 Petr|1 Joh|2 Joh|3 Joh|Judas|Openb?|Openbaring)\.?\s*\d+:\d+(?:-\d+)?)\b/gi;
 
+  const linkify = (s) =>
+    s
+      .replace(
+        /\[(.+?)\]\((https?:[^)]+)\)/g,
+        '<a class="text-blue-600 hover:underline" href="$2" target="_blank" rel="noreferrer">$1</a>'
+      )
+      .replace(
+        /(https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+)/g,
+        '<a class="text-blue-600 hover:underline" href="$1" target="_blank" rel="noreferrer">$1</a>'
+      )
+      .replace(
+        verseRefRe,
+        (m) => `<span class="font-semibold text-indigo-700">${m}</span>`
+      );
+
   const lines = String(text).replaceAll("\r\n", "\n").split("\n");
   const blocks = [];
   for (let i = 0; i < lines.length; i++) {
@@ -22,29 +37,43 @@ export default function AiPretty({ text = "" }) {
     } else if (!l.trim()) blocks.push({ t: "space" });
     else blocks.push({ t: "p", v: l });
   }
-  const hi = (s) =>
-    s.replace(verseRefRe, (m) => `<span class="font-semibold text-indigo-700">${m}</span>`);
+
+  const iconFor = (title) => {
+    if (/toepassing/i.test(title)) return "💡 " + title;
+    if (/gebed/i.test(title)) return "🙏 " + title;
+    if (/achtergrond/i.test(title)) return "📚 " + title;
+    if (/gespreks/i.test(title)) return "💬 " + title;
+    if (/hoofdlijnen/i.test(title)) return "🗂 " + title;
+    if (/centrale/i.test(title)) return "📖 " + title;
+    return title;
+  };
 
   return (
     <div className="text-[0.95rem] leading-6 space-y-3">
       {blocks.map((b, idx) => {
         if (b.t === "h2")
           return (
-            <h3 key={idx} className="text-lg font-semibold text-indigo-700 border-b border-gray-200 pb-1">
-              {b.v}
+            <h3
+              key={idx}
+              className="text-lg font-semibold text-indigo-700 border-b border-gray-200 pb-1"
+            >
+              {iconFor(b.v)}
             </h3>
           );
         if (b.t === "h3")
           return (
             <h4 key={idx} className="text-base font-semibold text-indigo-600">
-              {b.v}
+              {iconFor(b.v)}
             </h4>
           );
         if (b.t === "ul")
           return (
             <ul key={idx} className="list-disc pl-6 space-y-1">
               {b.v.map((it, i2) => (
-                <li key={i2} dangerouslySetInnerHTML={{ __html: hi(it) }} />
+                <li
+                  key={i2}
+                  dangerouslySetInnerHTML={{ __html: linkify(it) }}
+                />
               ))}
             </ul>
           );
@@ -53,7 +82,7 @@ export default function AiPretty({ text = "" }) {
           <p
             key={idx}
             className="whitespace-pre-wrap text-gray-800 dark:text-gray-200"
-            dangerouslySetInnerHTML={{ __html: hi(b.v) }}
+            dangerouslySetInnerHTML={{ __html: linkify(b.v) }}
           />
         );
       })}
