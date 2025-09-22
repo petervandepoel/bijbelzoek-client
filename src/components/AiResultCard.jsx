@@ -2,27 +2,28 @@
 import React from "react";
 
 export default function AiResultCard({ result }) {
-  // normaliseer keys
+  // normaliseer keys (NL varianten inbegrepen)
   const norm = {
     type: result.type,
     title: result.title || result.titel,
-    summary: result.summary || result.inleiding,
-    central_passages: result.central_passages,
-    discussion: result.discussion,
+    summary: result.summary || result.inleiding || result.samenvatting,
+    central_passages: result.central_passages || result.bijbelteksten,
+    discussion: result.discussion || result.vragen,
     outline:
       result.outline ||
-      result.kopjes?.map((k) => ({
-        title: k.titel || k,
-        content: k.inhoud || [],
+      result.kopjes ||
+      result.inhoud?.map((b) => ({
+        title: b.kop || b.titel,
+        content: [b.tekst, ...(b.bijbelteksten?.map((t) => t.referentie) || [])],
       })),
-    background: result.background,
-    application: result.application,
-    prayer: result.prayer,
-    children_block: result.children_block,
-    homiletical_tips: result.homiletical_tips,
-    songs: result.songs,
-    news: result.news,
-    media: result.media,
+    background: result.background || result.achtergrond,
+    application: result.application || result.toepassing,
+    prayer: result.prayer || result.gebed,
+    children_block: result.children_block || result.kinderen,
+    homiletical_tips: result.homiletical_tips || result.homiletische_tips,
+    songs: result.songs || result.liederen,
+    news: result.news || result.nieuws,
+    media: result.media || result.mediaitems,
     text: result.text,
   };
 
@@ -50,10 +51,10 @@ export default function AiResultCard({ result }) {
         <Section icon="📖" title="Centrale gedeelten">
           {norm.central_passages.map((c, i) => (
             <div key={i} className="mb-3">
-              <div className="font-medium">{c.ref}</div>
+              <div className="font-medium">{c.ref || c.referentie}</div>
               {c.text && (
                 <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-2 rounded">
-                  {c.text}
+                  {c.text || c.tekst}
                 </pre>
               )}
               {c.reason && <p className="italic text-sm">{c.reason}</p>}
@@ -75,24 +76,22 @@ export default function AiResultCard({ result }) {
       {norm.type === "preek" && norm.outline && (
         <Section icon="🗂" title="Hoofdlijnen">
           <ul className="list-disc pl-5 space-y-1">
-            {Array.isArray(norm.outline)
-              ? norm.outline.map((o, i) =>
-                  typeof o === "string" ? (
-                    <li key={i}>{o}</li>
-                  ) : (
-                    <li key={i}>
-                      <div className="font-medium">{o.title}</div>
-                      {o.content && (
-                        <ul className="list-disc pl-5 space-y-1">
-                          {o.content.map((c, j) => (
-                            <li key={j}>{c}</li>
-                          ))}
-                        </ul>
+            {norm.outline.map((o, i) =>
+              typeof o === "string" ? (
+                <li key={i}>{o}</li>
+              ) : (
+                <li key={i}>
+                  <div className="font-medium">{o.title}</div>
+                  {o.content && (
+                    <ul className="list-disc pl-5 space-y-1">
+                      {o.content.map(
+                        (c, j) => c && <li key={j}>{c}</li>
                       )}
-                    </li>
-                  )
-                )
-              : null}
+                    </ul>
+                  )}
+                </li>
+              )
+            )}
           </ul>
         </Section>
       )}
