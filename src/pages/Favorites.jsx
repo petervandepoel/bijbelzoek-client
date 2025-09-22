@@ -5,12 +5,9 @@ import WordFrequencyChart from "../components/WordFrequencyChart";
 import AiResultCard from "../components/AiResultCard";
 import { Link } from "react-router-dom";
 
-// Gebruik same-origin als default (belangrijk voor Vercel)
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
-/* ────────────────────────────────────────────────────────────────
-   Helper endpoints
-   ──────────────────────────────────────────────────────────────── */
+/* Helpers */
 const HITS_ENDPOINT = ({ version, mode, words }) =>
   `${API_BASE}/api/stats/hitsByBook?version=${encodeURIComponent(
     version || "HSV"
@@ -23,17 +20,21 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 async function fetchWithTimeout(input, init, ms = 15000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort("timeout"), ms);
-  try {
-    const res = await fetch(input, { ...(init || {}), signal: ctrl.signal });
-    return res;
-  } finally {
-    clearTimeout(t);
-  }
+  try { return await fetch(input, { ...(init || {}), signal: ctrl.signal }); }
+  finally { clearTimeout(t); }
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Kleine renderer voor platte AI-tekst (fallback)
-   ──────────────────────────────────────────────────────────────── */
+function safeJsonParse(maybe) {
+  if (!maybe) return null;
+  let txt = String(maybe).trim();
+  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fence) txt = fence[1];
+  const s = txt.indexOf("{"), e = txt.lastIndexOf("}");
+  if (s !== -1 && e !== -1 && e > s) txt = txt.slice(s, e + 1);
+  try { return JSON.parse(txt); } catch { return null; }
+}
+
+/* Fallback renderer */
 function AiPretty({ text = "" }) {
   const verseRefRe =
     /\b((Gen|Ex|Lev|Num|Deut|Joz|Richt|Rut|1 Sam|2 Sam|1 Kon|2 Kon|1 Kron|2 Kron|Ezra|Neh|Est|Job|Ps(?:alm|almen)?|Spr|Pred|Hoogl|Jes|Jer|Kla|Ezech|Dan|Hos|Joël|Amos|Obad|Jona|Micha|Nah|Hab|Zef|Hag|Zach|Mal|Mat|Matt|Marcus|Mar|Luk|Lucas|Joh|Johannes|Hand|Rom|Romeinen|1 Kor|2 Kor|Gal|Ef|Efeze|Fil|Filippenzen|Kol|1 Thess|2 Thess|1 Tim|2 Tim|Tit|Filem|Hebr?|Jak|1 Petr|2 Petr|1 Joh|2 Joh|3 Joh|Judas|Openb?|Openbaring)\.?\s*\d+:\d+(?:-\d+)?)\b/gi;
@@ -46,34 +47,18 @@ function AiPretty({ text = "" }) {
     else if (l.startsWith("## ")) blocks.push({ t: "h2", v: l.slice(3) });
     else if (/^\s*-\s+/.test(l)) {
       const items = [];
-      while (i < lines.length && /^\s*-\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^\s*-\s+/, ""));
-        i++;
-      }
-      i--;
-      blocks.push({ t: "ul", v: items });
+      while (i < lines.length && /^\s*-\s+/.test(lines[i])) { items.push(lines[i].replace(/^\s*-\s+/, "")); i++; }
+      i--; blocks.push({ t: "ul", v: items });
     } else if (!l.trim()) blocks.push({ t: "space" });
     else blocks.push({ t: "p", v: l });
   }
-
-  const hi = (s) =>
-    s.replace(verseRefRe, (m) => `<span class="font-semibold text-indigo-700">${m}</span>`);
-
+  const hi = (s) => s.replace(verseRefRe, (m) => `<span class="font-semibold text-indigo-700">${m}</span>`);
   return (
     <div className="text-[0.95rem] leading-6 space-y-3">
       {blocks.map((b, idx) => {
-        if (b.t === "h2")
-          return <h3 key={idx} className="text-lg font-semibold border-b border-gray-200 pb-1">{b.v}</h3>;
-        if (b.t === "h3")
-          return <h4 key={idx} className="text-base font-semibold text-indigo-700">{b.v}</h4>;
-        if (b.t === "ul")
-          return (
-            <ul key={idx} className="list-disc pl-6 space-y-1">
-              {b.v.map((it, i2) => (
-                <li key={i2} dangerouslySetInnerHTML={{ __html: hi(it) }} />
-              ))}
-            </ul>
-          );
+        if (b.t === "h2") return <h3 key={idx} className="text-lg font-semibold border-b border-gray-200 pb-1">{b.v}</h3>;
+        if (b.t === "h3") return <h4 key={idx} className="text-base font-semibold text-indigo-700">{b.v}</h4>;
+        if (b.t === "ul") return <ul key={idx} className="list-disc pl-6 space-y-1">{b.v.map((it, i2) => <li key={i2} dangerouslySetInnerHTML={{ __html: hi(it) }} />)}</ul>;
         if (b.t === "space") return <div key={idx} className="h-2" />;
         return <p key={idx} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: hi(b.v) }} />;
       })}
@@ -81,170 +66,237 @@ function AiPretty({ text = "" }) {
   );
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Component
-   ──────────────────────────────────────────────────────────────── */
+/* Main */
 export default function Favorites() {
   const {
-    generalNotes, setGeneralNotes,
+    generalNotes,
     favTexts, removeFavText, updateFavTextNote,
     favCharts, removeFavChart, updateFavChartNote,
     version, searchMode,
     aiResults, addAiResult, removeAiResult, setAiResults,
   } = useApp();
 
-  // Paneel "Genereer opzet"
-  const [mode, setMode] = useState("bijbelstudie"); // "bijbelstudie" | "preek" | "liederen"
+  /* ── zoekwoorden bewaren voor de zoekbalk ── */
+  useEffect(() => {
+    const all = (favCharts || []).flatMap((c) => c.words || []);
+    const words = Array.from(new Set(all.filter(Boolean)));
+    localStorage.setItem("bz.searchWords", words.join(","));
+  }, [favCharts]);
+
+  /* ── state ── */
+  const [mode, setMode] = useState("bijbelstudie");
   const [extra, setExtra] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState("");
 
-  // “Snelkoppelingen” Actueel & Media in hetzelfde paneel
-  const [newsState, setNewsState] = useState({ loading: false, error: "", links: [] });
-  const [mediaState, setMediaState] = useState({ loading: false, error: "", items: [] });
+  // Live stream state
+  const [live, setLive] = useState({
+    running: false,
+    text: "",
+    error: "",
+    preview: null, // { textsCount, chartsCount, wordsCount, topBooks[], notesSummary }
+  });
 
-  /* ── Bewaar zoekwoorden bij wisselen van pagina’s ───────────────── */
-  // Neem alle woorden uit favoriete grafieken en zet in localStorage.
-  useEffect(() => {
-    const all = (favCharts || []).flatMap((c) => c.words || []);
-    const words = Array.from(new Set(all.filter(Boolean)));
-    // wordt door de zoekpagina opgepikt op mount
-    localStorage.setItem("bz.searchWords", words.join(","));
-  }, [favCharts]);
+  // Actueel + Media (gecombineerd blok)
+  const [am, setAM] = useState({ loading: false, error: "", news: [], media: [] });
 
-  /* ── Boek-hits opvragen voor context ───────────────────────────── */
-  async function fetchBookHits(allWords) {
-    const words = Array.from(new Set((allWords || []).filter(Boolean)));
-    if (!words.length) return null;
-
+  /* ── boek-hits ── */
+  async function fetchBookHits(words) {
+    const uniq = Array.from(new Set((words || []).filter(Boolean)));
+    if (!uniq.length) return null;
     try {
-      const url = HITS_ENDPOINT({ version, mode: searchMode, words });
+      const url = HITS_ENDPOINT({ version, mode: searchMode, words: uniq });
       const res = await fetchWithTimeout(url, { method: "GET" });
       if (!res.ok) return null;
-
       const data = await res.json();
       const arr = Array.isArray(data?.data) ? data.data : [];
       const out = {};
       for (const row of arr) if (row?.book) out[row.book] = Number(row?.hits || 0);
       return out;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
-  /* ── Context opbouwen voor AI ──────────────────────────────────── */
-  async function buildContextAsync() {
+  /* ── context + preview ── */
+  async function buildContextAndPreview() {
     const parts = [];
+    let textsCount = 0;
+    let chartsCount = 0;
+    let wordsSet = new Set();
 
-    if (generalNotes) parts.push(`# Algemene notities\n${generalNotes}`);
+    if (generalNotes?.trim()) parts.push(`# Algemene notities\n${generalNotes.trim()}`);
 
     if (favTexts?.length) {
+      textsCount = favTexts.length;
       parts.push("# ⭐ Favoriete teksten");
-      favTexts.slice(0, 24).forEach((t) => {
+      favTexts.slice(0, 30).forEach((t) => {
         const note = t.note ? `\n_notitie:_ ${t.note}` : "";
         parts.push(`**${t.ref || ""}**\n${t.text || ""}${note}`);
       });
     }
 
-    let allWords = [];
     if (favCharts?.length) {
+      chartsCount = favCharts.length;
       parts.push("# 📊 Grafiek-woorden (keywords)");
-      favCharts.slice(0, 8).forEach((c) => {
+      favCharts.slice(0, 10).forEach((c) => {
         const words = (c.words || []).filter(Boolean);
+        words.forEach((w) => wordsSet.add(w));
         parts.push(`- ${c.title || words.join(", ")}`);
-        allWords = allWords.concat(words);
       });
     }
 
-    const boekHits = await fetchBookHits(allWords);
-    if (boekHits && Object.keys(boekHits).length) {
-      const rows = Object.entries(boekHits)
+    const wordsArr = Array.from(wordsSet);
+    const hits = await fetchBookHits(wordsArr);
+    let topBooks = [];
+    if (hits && Object.keys(hits).length) {
+      topBooks = Object.entries(hits)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 20)
-        .map(([book, cnt]) => `- ${book}: ${cnt}`);
-      parts.push("## Boek-hits\n" + rows.join("\n"));
+        .slice(0, 8)
+        .map(([book, cnt]) => `${book} (${cnt})`);
+      parts.push("## Boek-hits\n" + topBooks.map((x) => `- ${x}`).join("\n"));
     }
 
-    return parts.filter(Boolean).join("\n\n");
+    const notesSummary = generalNotes?.trim()?.slice(0, 140) || "";
+
+    return {
+      context: parts.filter(Boolean).join("\n\n"),
+      preview: {
+        textsCount, chartsCount, wordsCount: wordsArr.length, topBooks, notesSummary,
+      }
+    };
   }
 
-  /* ── AI: gestructureerd resultaat genereren ────────────────────── */
-  async function generate() {
-    setAiBusy(true); setAiError("");
+  /* ── streaming generate ── */
+  async function generateStream() {
+    setAiError("");
+    const { context, preview } = await buildContextAndPreview();
+
+    setLive({ running: true, text: "", error: "", preview });
+    setAiBusy(true);
+
     try {
-      const context = await buildContextAsync();
-      const res = await fetch(`${API_BASE}/api/ai/compose`, {
+      const res = await fetch(`${API_BASE}/api/ai/compose/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, extra: extra.trim(), context }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { structured } = await res.json();
+      if (!res.ok || !res.body) {
+        throw new Error(res.status === 401 ? "AI-sleutel ontbreekt of ongeldig (401)" : `HTTP ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let acc = "";
+
+      const pump = async () => {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let idx;
+          while ((idx = buffer.indexOf("\n\n")) !== -1) {
+            const packet = buffer.slice(0, idx).trim();
+            buffer = buffer.slice(idx + 2);
+            if (!packet) continue;
+            // accept `data: ...` or raw
+            const line = packet.startsWith("data:") ? packet.slice(5).trim() : packet;
+            if (!line || line === "[DONE]") continue;
+
+            try {
+              const j = JSON.parse(line);
+              // chunk could be "text", or { delta }, or { content }
+              const delta =
+                typeof j === "string" ? j :
+                j.delta ?? j.content ?? j.choices?.[0]?.delta?.content ?? "";
+              if (delta) {
+                acc += delta;
+                setLive((s) => ({ ...s, text: acc }));
+              }
+            } catch {
+              // maybe it was plain quoted text without JSON
+              const unquoted = line.replace(/^"+|"+$/g, "");
+              if (unquoted && unquoted !== "[DONE]") {
+                acc += unquoted;
+                setLive((s) => ({ ...s, text: acc }));
+              }
+            }
+          }
+        }
+      };
+
+      await pump();
+
+      // Try to parse final JSON → store nice structured result
+      const structured = safeJsonParse(acc);
       const label =
         mode === "bijbelstudie" ? "Bijbelstudie" :
         mode === "preek"        ? "Preek"        : "Liederen";
-      addAiResult({
-        id: newId(),
-        kind: mode,
-        title: `${label} — gegenereerde opzet`,
-        structured,
-        createdAt: new Date().toISOString(),
-      });
+
+      if (structured && typeof structured === "object") {
+        addAiResult({
+          id: newId(),
+          kind: mode,
+          title: `${label} — gegenereerde opzet`,
+          structured,
+          createdAt: new Date().toISOString(),
+        });
+        // clear live block after success
+        setLive({ running: false, text: "", error: "", preview: null });
+      } else {
+        // keep the streamed text as a fallback result
+        addAiResult({
+          id: newId(),
+          kind: mode,
+          title: `${label} — (stream, ongestructureerd)`,
+          text: acc,
+          createdAt: new Date().toISOString(),
+        });
+        setLive({ running: false, text: "", error: "", preview: null });
+      }
     } catch (e) {
-      setAiError(e.message || "AI-fout");
+      setLive((s) => ({ ...s, running: false, error: e.message || "AI-stream-fout" }));
+      setAiError(e.message || "AI-stream-fout");
     } finally {
       setAiBusy(false);
     }
   }
 
-  /* ── Actueel / Media: snelkoppelingen in dit paneel ────────────── */
-  function deriveThemeAndKeywords() {
-    // Thema: neem “extra” of fallback op eerste grafiektitel
-    const fallbackTitle =
-      (favCharts && favCharts[0] && (favCharts[0].title || (favCharts[0].words || []).join(", "))) || "";
-    const theme = (extra && extra.trim()) || fallbackTitle || "Bijbelstudie";
-    // Keywords: alle unieke woorden uit favoriete grafieken
+  /* ── Actueel + Media samen ── */
+  async function fetchActueelEnMedia() {
+    const theme =
+      (extra && extra.trim()) ||
+      (favCharts?.[0]?.title || (favCharts?.[0]?.words || []).join(", ")) ||
+      "Bijbelstudie";
+
     const keywords = Array.from(
       new Set((favCharts || []).flatMap((c) => c.words || []).filter(Boolean))
     ).slice(0, 10);
-    return { theme, keywords };
-  }
 
-  async function fetchActueel() {
-    const { theme, keywords } = deriveThemeAndKeywords();
-    setNewsState({ loading: true, error: "", links: [] });
+    setAM({ loading: true, error: "", news: [], media: [] });
     try {
-      const res = await fetch(`${API_BASE}/api/ai/actueel`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme, keywords }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setNewsState({ loading: false, error: "", links: data?.links || [] });
+      const [newsRes, mediaRes] = await Promise.all([
+        fetch(`${API_BASE}/api/ai/actueel`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme, keywords }),
+        }),
+        fetch(`${API_BASE}/api/ai/media`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme, keywords }),
+        }),
+      ]);
+      if (!newsRes.ok) throw new Error(`Actueel HTTP ${newsRes.status}`);
+      if (!mediaRes.ok) throw new Error(`Media HTTP ${mediaRes.status}`);
+
+      const news = await newsRes.json();
+      const media = await mediaRes.json();
+      setAM({ loading: false, error: "", news: news?.links || [], media: media?.media || [] });
     } catch (e) {
-      setNewsState({ loading: false, error: "Kon actueel niet laden.", links: [] });
+      setAM({ loading: false, error: e.message || "Kon actueel/media niet laden.", news: [], media: [] });
     }
   }
 
-  async function fetchMedia() {
-    const { theme, keywords } = deriveThemeAndKeywords();
-    setMediaState({ loading: true, error: "", items: [] });
-    try {
-      const res = await fetch(`${API_BASE}/api/ai/media`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme, keywords }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setMediaState({ loading: false, error: "", items: data?.media || [] });
-    } catch (e) {
-      setMediaState({ loading: false, error: "Kon media niet laden.", items: [] });
-    }
-  }
-
-  /* ── UI ────────────────────────────────────────────────────────── */
+  /* ── UI ── */
   return (
     <section className="max-w-6xl mx-auto p-3 sm:p-4 space-y-6">
       {/* ====== Genereer opzet ====== */}
@@ -273,6 +325,21 @@ export default function Favorites() {
           ))}
         </div>
 
+        {/* Context preview */}
+        {live.preview ? (
+          <div className="rounded-lg border p-3 bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700 mb-3">
+            <div className="text-sm font-semibold mb-1">Context (wat ik zie en ga doorgeven aan de AI)</div>
+            <ul className="text-sm list-disc pl-5 space-y-1">
+              <li>{live.preview.textsCount} favoriete teksten</li>
+              <li>{live.preview.chartsCount} grafieken met {live.preview.wordsCount} unieke zoekwoorden</li>
+              {live.preview.topBooks?.length ? (
+                <li>Top boeken (op basis van hits): {live.preview.topBooks.join(", ")}</li>
+              ) : null}
+              {live.preview.notesSummary ? <li>Samenvatting notities: “{live.preview.notesSummary}…”</li> : null}
+            </ul>
+          </div>
+        ) : null}
+
         <textarea
           className="w-full p-2 rounded border dark:bg-gray-900 dark:border-gray-700"
           rows={2}
@@ -281,75 +348,75 @@ export default function Favorites() {
           placeholder="Extra instructies (optioneel): doelgroep, toon, accenten…"
         />
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             disabled={aiBusy}
-            onClick={generate}
+            onClick={generateStream}
             className={"px-3 py-1.5 rounded text-sm " + (aiBusy ? "bg-gray-300" : "bg-indigo-600 text-white hover:bg-indigo-700")}
           >
-            Genereer
+            Genereer (stream)
           </button>
           {aiBusy && <span className="text-sm text-gray-600 dark:text-gray-300">⏳ Bezig…</span>}
           {aiError && <span className="text-sm text-amber-600">{aiError}</span>}
-          <div className="ml-auto text-xs text-gray-500 dark:text-gray-400">
-            Context: notities, favoriete teksten & grafiek-woorden (+ boek-hits).
+
+          <button
+            onClick={fetchActueelEnMedia}
+            className="ml-auto px-3 py-1.5 rounded text-sm border bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Actueel & Media zoeken
+          </button>
+        </div>
+
+        {/* Gecombineerd Actueel + Media blok */}
+        <div className="mt-4 rounded-lg border p-3 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-sm font-semibold">Actueel & Media</div>
+            {am.loading ? <div className="text-xs text-gray-500">laden…</div> : null}
+          </div>
+          {am.error && <div className="text-xs text-red-600 mb-2">{am.error}</div>}
+          <div className="grid md:grid-cols-2 gap-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Nieuws / Artikelen</div>
+              <ul className="text-sm space-y-1">
+                {am.news.map((lnk, i) => (
+                  <li key={i}>
+                    <a className="text-indigo-600 hover:underline" href={lnk.url} target="_blank" rel="noreferrer">
+                      {lnk.title}
+                    </a>
+                    <span className="ml-2 text-xs text-gray-500">({lnk.source})</span>
+                  </li>
+                ))}
+                {!am.loading && !am.news.length && !am.error && <li className="text-xs text-gray-500">Nog niets — klik “Actueel & Media zoeken”.</li>}
+              </ul>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Beelden / Kunst / Video</div>
+              <ul className="text-sm space-y-1">
+                {am.media.map((m, i) => (
+                  <li key={i}>
+                    <a className="text-indigo-600 hover:underline" href={m.url} target="_blank" rel="noreferrer">
+                      {m.title}
+                    </a>
+                    <span className="ml-2 text-xs text-gray-500">({m.source}, {m.type})</span>
+                  </li>
+                ))}
+                {!am.loading && !am.media.length && !am.error && <li className="text-xs text-gray-500">Nog niets — klik “Actueel & Media zoeken”.</li>}
+              </ul>
+            </div>
           </div>
         </div>
 
-        {/* Actueel & Media blok in dit paneel */}
-        <div className="mt-4 grid md:grid-cols-2 gap-3">
-          <div className="rounded-lg border border-amber-200/60 dark:border-amber-700 p-3 bg-amber-50/50 dark:bg-amber-900/20">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-amber-800 dark:text-amber-300">Actueel</div>
-              <button
-                onClick={fetchActueel}
-                className="px-2 py-1 rounded text-xs bg-amber-100 dark:bg-amber-800/50 text-amber-900 dark:text-amber-100 border border-amber-300/60 dark:border-amber-700"
-              >
-                {newsState.loading ? "Laden…" : "Zoek"}
-              </button>
-            </div>
-            {newsState.error && <div className="text-xs text-red-600 mt-2">{newsState.error}</div>}
-            <ul className="mt-2 text-sm space-y-1">
-              {newsState.links.map((lnk, i) => (
-                <li key={i}>
-                  <a className="text-indigo-600 hover:underline" href={lnk.url} target="_blank" rel="noreferrer">
-                    {lnk.title}
-                  </a>
-                  <span className="ml-2 text-xs text-gray-500">({lnk.source})</span>
-                </li>
-              ))}
-              {!newsState.loading && !newsState.links.length && !newsState.error && (
-                <li className="text-xs text-gray-500">Klik op <em>Zoek</em> voor relevante nieuws/achtergrond-links.</li>
-              )}
-            </ul>
+        {/* Live streaming output (ruwe tekst totdat JSON compleet is) */}
+        {live.running || live.text ? (
+          <div className="mt-4 rounded-lg border p-3 bg-indigo-50/40 dark:bg-indigo-900/20 border-indigo-200/60 dark:border-indigo-700">
+            <div className="text-sm font-semibold text-indigo-800 dark:text-indigo-300 mb-2">AI (live)</div>
+            {live.error ? (
+              <div className="text-sm text-red-600">{live.error}</div>
+            ) : (
+              <AiPretty text={live.text || "…"} />
+            )}
           </div>
-
-          <div className="rounded-lg border border-indigo-200/60 dark:border-indigo-700 p-3 bg-indigo-50/40 dark:bg-indigo-900/20">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">Media</div>
-              <button
-                onClick={fetchMedia}
-                className="px-2 py-1 rounded text-xs bg-indigo-100 dark:bg-indigo-800/50 text-indigo-900 dark:text-indigo-100 border border-indigo-300/60 dark:border-indigo-700"
-              >
-                {mediaState.loading ? "Laden…" : "Zoek"}
-              </button>
-            </div>
-            {mediaState.error && <div className="text-xs text-red-600 mt-2">{mediaState.error}</div>}
-            <ul className="mt-2 text-sm space-y-1">
-              {mediaState.items.map((m, i) => (
-                <li key={i}>
-                  <a className="text-indigo-600 hover:underline" href={m.url} target="_blank" rel="noreferrer">
-                    {m.title}
-                  </a>
-                  <span className="ml-2 text-xs text-gray-500">({m.source}, {m.type})</span>
-                </li>
-              ))}
-              {!mediaState.loading && !mediaState.items.length && !mediaState.error && (
-                <li className="text-xs text-gray-500">Klik op <em>Zoek</em> voor beelden/kunst/filmpjes bij dit thema.</li>
-              )}
-            </ul>
-          </div>
-        </div>
+        ) : null}
       </div>
 
       {/* ====== AI-resultaten ====== */}
@@ -407,11 +474,7 @@ export default function Favorites() {
                     Verwijderen
                   </button>
                 </div>
-                {r.structured ? (
-                  <AiResultCard result={r} />
-                ) : (
-                  <AiPretty text={r.text} />
-                )}
+                {r.structured ? <AiResultCard result={r} /> : <AiPretty text={r.text} />}
               </article>
             ))}
           </div>
