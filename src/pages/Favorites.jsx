@@ -55,12 +55,30 @@ function AiPretty({ text = "" }) {
   );
 }
 
+// helper to fetch top book hits
+async function fetchBookHits(words, version, searchMode) {
+  if (!words?.length) return [];
+  const url = `${API_BASE}/api/stats/hitsByBook?version=${encodeURIComponent(version)}&mode=${encodeURIComponent(searchMode)}&words=${encodeURIComponent(words.join(","))}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data?.data)) return [];
+    return data.data
+      .filter(r => r.book && r.hits)
+      .sort((a,b) => b.hits - a.hits)
+      .slice(0, 8)
+      .map(r => `${r.book} (${r.hits})`);
+  } catch { return []; }
+}
+
 export default function Favorites() {
   const {
     generalNotes,
     favTexts, removeFavText, updateFavTextNote,
     favCharts, removeFavChart, updateFavChartNote,
     aiResults, addAiResult, removeAiResult,
+    version, searchMode
   } = useApp();
 
   const [mode, setMode] = useState("bijbelstudie");
@@ -71,19 +89,44 @@ export default function Favorites() {
 
   async function buildContext() {
     const parts = [];
-    if (generalNotes?.trim()) parts.push(`# Algemene notities\n${generalNotes.trim()}`);
+    let wordsSet = new Set();
+
+    if (generalNotes?.trim()) {
+      parts.push(`# Algemene notities\n${generalNotes.trim()}`);
+    }
+
     if (favTexts?.length) {
       parts.push("# ⭐ Favoriete teksten");
-      favTexts.slice(0, 20).forEach((t) => {
+      favTexts.slice(0, 30).forEach((t) => {
         parts.push(`**${t.ref || ""}**\n${t.text || ""}` + (t.note ? `\n_notitie:_ ${t.note}` : ""));
       });
     }
+
     if (favCharts?.length) {
       parts.push("# 📊 Grafieken");
-      favCharts.slice(0, 5).forEach((c) => {
-        parts.push(`- ${c.title || (c.words || []).join(", ")}`);
+      favCharts.slice(0, 10).forEach((c) => {
+        const words = (c.words || []).filter(Boolean);
+        words.forEach((w) => wordsSet.add(w));
+        parts.push(`- ${c.title || words.join(", ")}`);
       });
     }
+
+    const wordsArr = Array.from(wordsSet);
+    if (wordsArr.length) {
+      parts.push("## Totaal verzamelde zoekwoorden");
+      parts.push(wordsArr.join(", "));
+    }
+
+    const topBooks = await fetchBookHits(wordsArr, version, searchMode);
+    if (topBooks?.length) {
+      parts.push("## Topboeken (meeste treffers)");
+      topBooks.forEach((b) => parts.push(`- ${b}`));
+    }
+
+    parts.push("## Metadata");
+    parts.push(`Bijbelversie: ${version}`);
+    parts.push(`Zoekmodus: ${searchMode}`);
+
     return parts.join("\n\n");
   }
 
