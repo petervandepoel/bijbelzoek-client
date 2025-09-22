@@ -1,9 +1,9 @@
 // client/src/components/AiResultCard.jsx
 import React, { useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE || ""; // bijv. "" voor proxy of "http://localhost:3000"
+const API_BASE = import.meta.env.VITE_API_BASE || ""; // "" for dev proxy
 
-/* Helpers */
+// Helpers
 const fmtDate = (ts) =>
   new Date(ts || Date.now()).toLocaleString("nl-NL", {
     dateStyle: "medium",

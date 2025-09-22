@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 import WordFrequencyChart from "../components/WordFrequencyChart";
+import AiResultCard from "../components/AiResultCard";
 import { Link } from "react-router-dom";
 
 // helemaal bovenin, bij je imports
@@ -239,84 +240,32 @@ export default function Favorites() {
 
   // ───────── STREAM: opzet genereren ─────────
   async function generate() {
-    setAiBusy(true);
-    setAiError("");
-    setStreamText("");
-    try {
-      const context = await buildContextAsync();
-
-      const res = await fetch(`${API_BASE}/api/ai/compose/stream`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, extra: extra.trim(), context }),
-      });
-      if (!res.ok || !res.body) throw new Error(`Stream HTTP ${res.status}`);
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
-      let acc = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let idx;
-        while ((idx = buffer.indexOf("\n\n")) !== -1) {
-          const event = buffer.slice(0, idx);
-          buffer = buffer.slice(idx + 2);
-
-          const lines = event.split("\n").map((l) => l.trim());
-          let isEnd = false;
-
-          for (const line of lines) {
-            if (line.startsWith("event:") && line.slice(6).trim() === "end") {
-              isEnd = true;
-              continue;
-            }
-            if (!line.startsWith("data:")) continue;
-            const data = line.slice(5).trim();
-
-            try {
-              const obj = JSON.parse(data);
-              const chunk =
-                typeof obj === "string" ? obj : obj?.delta || obj?.content || "";
-              if (!isEnd && chunk) {
-                acc += chunk;
-                setStreamText((prev) => prev + chunk);
-              }
-            } catch {
-              if (!isEnd && data) {
-                acc += data;
-                setStreamText((prev) => prev + data);
-              }
-            }
-          }
-
-          if (isEnd) {
-            const label =
-              mode === "bijbelstudie" ? "Bijbelstudie" :
-              mode === "preek"       ? "Preek"        : "Liederen";
-
-            addAiResult({
-              id: newId(),
-              kind: `compose_${mode}`,
-              title: `${label} — gegenereerde opzet`,
-              text: acc,
-              createdAt: new Date().toISOString(),
-            });
-
-            setStreamText("");
-            setAiBusy(false);
-          }
-        }
-      }
-    } catch (e) {
-      setAiError(e.message || "AI-stream-fout");
-      setAiBusy(false);
-    }
+  setAiBusy(true); setAiError("");
+  try {
+    const context = await buildContextAsync();
+    const res = await fetch(`${API_BASE}/api/ai/compose`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode, extra: extra.trim(), context }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { structured } = await res.json();
+    const label =
+      mode === "bijbelstudie" ? "Bijbelstudie" :
+      mode === "preek"        ? "Preek"        : "Liederen";
+    addAiResult({
+      id: newId(),
+      kind: mode,
+      title: `${label} — gegenereerde opzet`,
+      structured,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    setAiError(e.message || "AI-fout");
+  } finally {
+    setAiBusy(false);
   }
+}
 
   // ───────── UI ─────────
   return (
@@ -417,15 +366,21 @@ export default function Favorites() {
         {aiResults.length === 0 ? (
           <p className="text-gray-500">Nog geen AI-resultaten. Zorg ervoor dat je eerst (<Link to="/" className="text-blue-600 hover:underline">
         Ga naar Zoeken »
-  <     /Link>) relevante teksten en grafieken bewaard voor een beter resultaat.
+  </Link>) relevante teksten en grafieken bewaard voor een beter resultaat.
   </p>
         ) : (
           <div className="grid gap-4">
             {aiResults.map((r) => (
-              <article key={r.id} className="border rounded-lg p-3 bg-white dark:bg-gray-900">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="font-medium">{r.title}</div>
-                  <button className="text-red-500 hover:text-red-600 text-sm" onClick={() => removeAiResult(r.id)}>Verwijderen</button>
+  <article key={r.id} className="border rounded-lg p-3 bg-white dark:bg-gray-900">
+    <div className="flex justify-between items-start mb-2">
+      <div className="font-medium">{r.title}</div>
+      <button className="text-red-500 hover:text-red-600 text-sm" onClick={() => removeAiResult(r.id)}>Verwijderen</button>
+    </div>
+    {r.structured
+      ? <AiResultCard result={r} />
+      : <AiPretty text={r.text} mode={(r.kind || "").includes("liederen") ? "liederen" : (r.kind || "").includes("preek") ? "preek" : "bijbelstudie"} />}
+  </article>
+))}>Verwijderen</button>
                 </div>
                 <AiPretty text={r.text} mode={(r.kind || "").includes("liederen") ? "liederen" : (r.kind || "").includes("preek") ? "preek" : "bijbelstudie"} />
               </article>
@@ -440,7 +395,7 @@ export default function Favorites() {
         {favTexts.length === 0 ? (
           <p className="text-gray-500">Nog geen teksten toegevoegd. Zorg ervoor dat je eerst (<Link to="/" className="text-blue-600 hover:underline">
         Ga naar Zoeken »
-  <     /Link>) relevante teksten en grafieken bewaard voor een beter resultaat.</p>
+  </Link>) relevante teksten en grafieken bewaard voor een beter resultaat.</p>
         ) : (
           <div className="grid gap-4">
             {favTexts.map((t) => (
@@ -468,7 +423,7 @@ export default function Favorites() {
         {favCharts.length === 0 ? (
           <p className="text-gray-500">Nog geen grafieken toegevoegd. Zorg ervoor dat je eerst (<Link to="/" className="text-blue-600 hover:underline">
         Ga naar Zoeken »
-  <     /Link>)  relevante teksten en grafieken bewaard voor een beter resultaat.</p>
+  </Link>)  relevante teksten en grafieken bewaard voor een beter resultaat.</p>
         ) : (
           <div className="grid gap-4">
             {favCharts.map((c) => (
