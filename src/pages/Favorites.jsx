@@ -480,7 +480,7 @@ export default function Favorites() {
                   </div>
                   <button className="text-red-500 hover:text-red-600" onClick={() => removeFavChart(c.id)}>Verwijderen</button>
                 </div>
-                <WordFrequencyChart queryWords={c.words} onClickDrill={null} onFavChart={null} />
+                <WordFrequencyChart queryWords={c.words} version={c.version} onClickDrill={null} onFavChart={null} />
                 <input
                   className="mt-3 w-full text-sm p-2 rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-900"
                   value={c.note || ""}

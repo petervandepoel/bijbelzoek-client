@@ -15,16 +15,8 @@ import { BOOKS_NL, BOOKS_EN } from "../utils/books";
 import { Star } from "lucide-react";
 
 const palette = [
-  "#6366f1", // indigo
-  "#f59e0b", // amber
-  "#10b981", // emerald
-  "#ef4444", // red
-  "#14b8a6", // teal
-  "#a855f7", // purple
-  "#3b82f6", // blue
-  "#ec4899", // pink
-  "#84cc16", // lime
-  "#fb923c", // orange
+  "#6366f1", "#f59e0b", "#10b981", "#ef4444", "#14b8a6",
+  "#a855f7", "#3b82f6", "#ec4899", "#84cc16", "#fb923c",
 ];
 
 function canonicalBooks(version) {
@@ -53,9 +45,16 @@ function expandForStats(word) {
   return [base];
 }
 
-export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChart }) {
+export default function WordFrequencyChart({
+  queryWords,
+  version: forcedVersion, // 👈 toegevoegd
+  onClickDrill,
+  onFavChart,
+}) {
   const app = useApp();
-  const version = app?.version;
+
+  // 👇 Als een versie is meegegeven (bijv. via favoriet), gebruik die. Anders context.
+  const version = forcedVersion || app?.version;
   const searchMode = app?.searchMode;
 
   const favCharts = app?.favCharts || [];
@@ -202,7 +201,7 @@ export default function WordFrequencyChart({ queryWords, onClickDrill, onFavChar
                 key={w}
                 dataKey={w}
                 name={w}
-                stackId="a" // ⬅️ zorgt voor stacked bars
+                stackId="a" // stacked view
                 fill={palette[idx % palette.length]}
               />
             ))}
