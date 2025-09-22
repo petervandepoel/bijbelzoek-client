@@ -1,7 +1,7 @@
 // client/src/components/SearchResults.jsx
 import React from "react";
 import { useApp } from "../context/AppContext";
-import StarButton from "./StarButton.jsx";
+import { Star } from "lucide-react";
 import ReadChapterButton from "./ReadChapterButton.jsx";
 
 export default function SearchResults({
@@ -55,7 +55,16 @@ export default function SearchResults({
         const text =
           item.text ?? item.snippet ?? item.content ?? "[geen tekst beschikbaar]";
 
-        const fav = isFavText(version, ref);
+        const fav = typeof isFavText === "function" ? isFavText(ref) : false;
+
+        const toggleFav = () => {
+          if (!ref) return;
+          if (fav) {
+            typeof removeFavText === "function" ? removeFavText(ref) : null;
+          } else {
+            typeof addFavText === "function" ? addFavText({ ref, text }) : null;
+          }
+        };
 
         return (
           <div
@@ -67,15 +76,25 @@ export default function SearchResults({
                 {ref || "[geen ref]"}
               </h4>
               <div className="flex gap-2">
-                {/* ⭐ zelfde logica als ChapterModal */}
-                <StarButton
-                  active={fav}
-                  onClick={() =>
-                    fav
-                      ? removeFavText(version, ref)
-                      : addFavText(version, ref, text)
+                <button
+                  onClick={toggleFav}
+                  className={
+                    "inline-flex items-center gap-1 text-xs px-2 py-1 rounded border transition " +
+                    (fav
+                      ? "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-900/20 dark:text-amber-300"
+                      : "border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-indigo-700 dark:text-indigo-300")
                   }
-                />
+                  aria-pressed={fav}
+                  title={fav ? "Verwijderen uit favorieten" : "Toevoegen aan favorieten"}
+                >
+                  <Star
+                    className="w-4 h-4"
+                    stroke="currentColor"
+                    fill={fav ? "currentColor" : "none"}
+                  />
+                  <span>{fav ? "Favoriet" : "Bewaar"}</span>
+                </button>
+
                 {item.book && (
                   <ReadChapterButton
                     book={item.book}
