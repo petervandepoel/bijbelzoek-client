@@ -374,20 +374,28 @@ export default function Favorites() {
   <article key={r.id} className="border rounded-lg p-3 bg-white dark:bg-gray-900">
     <div className="flex justify-between items-start mb-2">
       <div className="font-medium">{r.title}</div>
-      <button className="text-red-500 hover:text-red-600 text-sm" onClick={() => removeAiResult(r.id)}>Verwijderen</button>
+      <button
+        type="button"
+        className="text-red-500 hover:text-red-600 text-sm"
+        onClick={() => removeAiResult(r.id)}
+      >
+        Verwijderen
+      </button>
     </div>
-    {r.structured
-      ? <AiResultCard result={r} />
-      : <AiPretty text={r.text} mode={(r.kind || "").includes("liederen") ? "liederen" : (r.kind || "").includes("preek") ? "preek" : "bijbelstudie"} />}
+    {r.structured ? (
+      <AiResultCard result={r} />
+    ) : (
+      <AiPretty
+        text={r.text}
+        mode={(r.kind || "").includes("liederen")
+          ? "liederen"
+          : (r.kind || "").includes("preek")
+            ? "preek"
+            : "bijbelstudie"}
+      />
+    )}
   </article>
-))}>Verwijderen</button>
-                </div>
-                <AiPretty text={r.text} mode={(r.kind || "").includes("liederen") ? "liederen" : (r.kind || "").includes("preek") ? "preek" : "bijbelstudie"} />
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
+))}
 
       {/* ====== Favoriete teksten ====== */}
       <div className="space-y-4">
