@@ -1,281 +1,305 @@
 // client/src/pages/Favorites.jsx
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
+import { useApp } from "../context/AppContext";
+import WordFrequencyChart from "../components/WordFrequencyChart";
 import AiResultCard from "../components/AiResultCard";
+import { Link } from "react-router-dom";
 
-/**
- * Best-effort context collector.
- * Probeert data op te halen uit (in volgorde):
- * - props-ish globals (window.__favorites, window.__notes, window.__charts, window.__words, window.__topBooks)
- * - localStorage keys: favorites, notes, charts, words, topBooks
- * Valideert en reduceert naar een compact samenvattingsobject.
- */
-function safeParse(json) {
-  try { return JSON.parse(json); } catch { return null; }
-}
-function toArray(x){ return Array.isArray(x) ? x : (x ? [x] : []); }
-function uniq(arr){ return Array.from(new Set(arr)); }
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
-function collectClientContext(){
-  const g = (typeof window !== "undefined") ? window : {};
-  const fromGlobal = {
-    favorites: g.__favorites,
-    notes: g.__notes,
-    charts: g.__charts,
-    words: g.__words,
-    topBooks: g.__topBooks
-  };
-  const fromStorage = {
-    favorites: safeParse(typeof localStorage !== "undefined" ? localStorage.getItem("favorites") : null),
-    notes: safeParse(typeof localStorage !== "undefined" ? localStorage.getItem("notes") : null),
-    charts: safeParse(typeof localStorage !== "undefined" ? localStorage.getItem("charts") : null),
-    words: safeParse(typeof localStorage !== "undefined" ? localStorage.getItem("words") : null),
-    topBooks: safeParse(typeof localStorage !== "undefined" ? localStorage.getItem("topBooks") : null)
-  };
+const newId = () => Math.random().toString(36).slice(2, 10);
 
-  const pick = (key) => fromGlobal[key] || fromStorage[key] || [];
-  const favorites = toArray(pick("favorites")).filter(Boolean);
-  const notes = toArray(pick("notes")).filter(Boolean);
-  const charts = toArray(pick("charts")).filter(Boolean);
-  const words = toArray(pick("words")).filter(Boolean);
-  const topBooks = toArray(pick("topBooks")).filter(Boolean);
-
-  // Normalize favorites: expect items like { ref:"Rom 8:1-4", text:"...", note:"..." }
-  const normalizedFavorites = favorites.map((f) => ({
-    ref: f?.ref || f?.reference || f?.id || "",
-    text: f?.text || f?.vers || f?.content || "",
-    note: f?.note || f?.notitie || ""
-  })).filter(x => x.ref || x.text || x.note);
-
-  // Notes: plain strings or {title, text}
-  const normalizedNotes = notes.map((n) => (typeof n === "string" ? { title: "", text: n } : ({
-    title: n?.title || n?.onderwerp || "",
-    text: n?.text || n?.body || n?.inhoud || ""
-  }))).filter(x => x.text);
-
-  // Charts: accept either frequency objects or labels
-  const normalizedWords = words.flatMap((w) => {
-    if (!w) return [];
-    if (typeof w === "string") return [{ word: w, count: 1 }];
-    if (Array.isArray(w)) return w.map(x => (typeof x === "string" ? { word: x, count: 1 } : x));
-    if (typeof w === "object") {
-      return Object.entries(w).map(([word, count]) => ({ word, count }));
-    }
-    return [];
-  }).filter(Boolean);
-
-  const normalizedTopBooks = topBooks.flatMap((b) => {
-    if (!b) return [];
-    if (typeof b === "string") return [{ book: b, count: 1 }];
-    if (Array.isArray(b)) return b.map(x => (typeof x === "string" ? { book: x, count: 1 } : x));
-    if (typeof b === "object" && !Array.isArray(b)) {
-      return Object.entries(b).map(([book, count]) => ({ book, count }));
-    }
-    return [];
-  }).filter(Boolean);
-
-  const wordSummary = normalizedWords
-    .sort((a,b)=> (b.count||0) - (a.count||0))
-    .slice(0,20);
-
-  const topBooksSummary = normalizedTopBooks
-    .sort((a,b)=> (b.count||0) - (a.count||0))
-    .slice(0,10);
-
-  return {
-    favorites: normalizedFavorites,
-    notes: normalizedNotes,
-    words: wordSummary,
-    topBooks: topBooksSummary,
-    charts, // raw pass-through in case de server er iets mee kan
-    counts: {
-      favorites: normalizedFavorites.length,
-      notes: normalizedNotes.length,
-      words: wordSummary.length,
-      topBooks: topBooksSummary.length
-    }
-  };
+function safeJsonParse(maybe) {
+  if (!maybe) return null;
+  let txt = String(maybe).trim();
+  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fence) txt = fence[1];
+  const s = txt.indexOf("{"), e = txt.lastIndexOf("}");
+  if (s !== -1 && e !== -1 && e > s) txt = txt.slice(s, e + 1);
+  try { return JSON.parse(txt); } catch { return null; }
 }
 
-function buildPrompt({ mode, userInput, context }){
-  const lines = [];
-  lines.push("DOEL: Maak een rijk resultaat voor " + (mode || "onbekend") + ".");
-  lines.push("");
-  lines.push("USER_INPUT:");
-  lines.push(userInput || "(leeg)");
-  lines.push("");
+/* Fallback renderer for streaming prose */
+function AiPretty({ text = "" }) {
+  const verseRefRe =
+    /\b((Gen|Ex|Lev|Num|Deut|Joz|Richt|Rut|1 Sam|2 Sam|1 Kon|2 Kon|1 Kron|2 Kron|Ezra|Neh|Est|Job|Ps(?:alm|almen)?|Spr|Pred|Hoogl|Jes|Jer|Kla|Ezech|Dan|Hos|Joël|Amos|Obad|Jona|Micha|Nah|Hab|Zef|Hag|Zach|Mal|Mat|Matt|Marcus|Mar|Luk|Lucas|Joh|Johannes|Hand|Rom|Romeinen|1 Kor|2 Kor|Gal|Ef|Efeze|Fil|Filippenzen|Kol|1 Thess|2 Thess|1 Tim|2 Tim|Tit|Filem|Hebr?|Jak|1 Petr|2 Petr|1 Joh|2 Joh|3 Joh|Judas|Openb?|Openbaring)\.?\s*\d+:\d+(?:-\d+)?)\b/gi;
 
-  lines.push("CONTEXT:");
-  lines.push(" – Favorieten (" + context.counts.favorites + "):");
-  context.favorites.slice(0,50).forEach((f, i) => {
-    const ref = f.ref ? "[" + f.ref + "] " : "";
-    const txt = (f.text || "").replace(/\s+/g, " ").trim();
-    const note = f.note ? " {note: " + f.note.replace(/\s+/g," ").trim() + "}" : "";
-    lines.push("   " + (i+1) + ". " + ref + (txt ? txt.slice(0,240) : "") + note);
-  });
-  if(context.counts.notes){
-    lines.push(" – Notities (" + context.counts.notes + "):");
-    context.notes.slice(0,30).forEach((n,i)=>{
-      const t = n.title ? ("(" + n.title + ") ") : "";
-      lines.push("   " + (i+1) + ". " + t + (n.text || "").replace(/\s+/g," ").trim().slice(0,300));
-    });
+  const lines = String(text).replaceAll("\r\n", "\n").split("\n");
+  const blocks = [];
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.startsWith("### ")) blocks.push({ t: "h3", v: l.slice(4) });
+    else if (l.startsWith("## ")) blocks.push({ t: "h2", v: l.slice(3) });
+    else if (/^\s*-\s+/.test(l)) {
+      const items = [];
+      while (i < lines.length && /^\s*-\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*-\s+/, ""));
+        i++;
+      }
+      i--;
+      blocks.push({ t: "ul", v: items });
+    } else if (!l.trim()) blocks.push({ t: "space" });
+    else blocks.push({ t: "p", v: l });
   }
-  if(context.counts.words){
-    lines.push(" – Woorden top (" + context.counts.words + "):");
-    lines.push("   " + context.words.map(w => w.word + ":" + (w.count ?? 1)).join(", "));
-  }
-  if(context.counts.topBooks){
-    lines.push(" – Topboeken (" + context.counts.topBooks + "):");
-    lines.push("   " + context.topBooks.map(b => b.book + ":" + (b.count ?? 1)).join(", "));
-  }
-  lines.push("");
-  lines.push("Richtlijnen output:");
-  lines.push(" - Geef GEEN JSON in deze stream; schrijf leesbare proza voor de ‘Extra instructies’-weergave.");
-  lines.push(" - Bewaar concrete opsommingen, titels en bullets.");
-  lines.push(" - Kondig expliciet aan waar je Bijbelverwijzingen gebruikt.");
-
-  return lines.join("\n");
+  const hi = (s) => s.replace(verseRefRe, (m) => `<span class="font-semibold text-indigo-700">${m}</span>`);
+  return (
+    <div className="text-[0.95rem] leading-6 space-y-3">
+      {blocks.map((b, idx) => {
+        if (b.t === "h2") return <h3 key={idx} className="text-lg font-semibold border-b border-gray-200 pb-1">{b.v}</h3>;
+        if (b.t === "h3") return <h4 key={idx} className="text-base font-semibold text-indigo-700">{b.v}</h4>;
+        if (b.t === "ul") return <ul key={idx} className="list-disc pl-6 space-y-1">{b.v.map((it, i2) => <li key={i2} dangerouslySetInnerHTML={{ __html: hi(it) }} />)}</ul>;
+        if (b.t === "space") return <div key={idx} className="h-2" />;
+        return <p key={idx} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: hi(b.v) }} />;
+      })}
+    </div>
+  );
 }
 
-export default function Favorites(){
-  const [live,setLive] = useState({ running:false, text:"", error:"", preview:null });
-  const [results,setResults] = useState([]);
-  const [userInput,setUserInput] = useState("");
+export default function Favorites() {
+  const {
+    generalNotes,
+    favTexts, removeFavText, updateFavTextNote,
+    favCharts, removeFavChart, updateFavChartNote,
+    aiResults, addAiResult, removeAiResult,
+  } = useApp();
 
-  const context = useMemo(()=>collectClientContext(),[]);
+  const [mode, setMode] = useState("bijbelstudie");
+  const [extra, setExtra] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [live, setLive] = useState({ running: false, text: "", error: "" });
 
-  const modes = [
-    { key:"preek", label:"Preek" },
-    { key:"studie", label:"Bijbelstudie" },
-    { key:"liederen", label:"Liederen" },
-    { key:"actueelmedia", label:"Actueel & Media" }
-  ];
-
-  function contextPreview(){
-    const c = context.counts;
+  async function buildContext() {
     const parts = [];
-    parts.push(c.favorites + " teksten");
-    if(c.notes) parts.push(c.notes + " notities");
-    if(c.words) parts.push(c.words + " woord-highlights");
-    if(c.topBooks) parts.push(c.topBooks + " topboeken");
-    return parts.join(" • ");
+    if (generalNotes?.trim()) parts.push(`# Algemene notities\n${generalNotes.trim()}`);
+    if (favTexts?.length) {
+      parts.push("# ⭐ Favoriete teksten");
+      favTexts.slice(0, 20).forEach((t) => {
+        parts.push(`**${t.ref || ""}**\n${t.text || ""}` + (t.note ? `\n_notitie:_ ${t.note}` : ""));
+      });
+    }
+    if (favCharts?.length) {
+      parts.push("# 📊 Grafieken");
+      favCharts.slice(0, 5).forEach((c) => {
+        parts.push(`- ${c.title || (c.words || []).join(", ")}`);
+      });
+    }
+    return parts.join("\n\n");
   }
 
-  async function generate(mode){
-    const prompt = buildPrompt({ mode, userInput, context });
+  async function generateStream() {
+    setAiError("");
+    const context = await buildContext();
+    setLive({ running: true, text: "", error: "" });
+    setAiBusy(true);
 
-    // Stream proza
-    setLive({ running:true, text:"", error:"", preview: { mode, counts: context.counts } });
-
-    // We gebruiken fetch + ReadableStream i.p.v. native EventSource
-    // omdat we in dezelfde POST body de prompt mee willen geven.
     try {
-      const resp = await fetch("/api/ai/compose/stream", {
+      const res = await fetch(`${API_BASE}/api/ai/compose/stream`, {
         method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ prompt })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, extra: extra.trim(), context }),
       });
-      if(!resp.body) throw new Error("Geen stream body");
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 
-      const reader = resp.body.getReader();
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
       let acc = "";
-      while(true){
-        const {value, done} = await reader.read();
-        if(done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        // Server stuurt `data: "..."\n\n` regels; haal de payloads eruit
-        chunk.split("\n\n").forEach(line => {
-          if(line.startsWith("data: ")){
-            const data = line.slice(6);
-            if(data === "[DONE]") return;
-            try {
-              const piece = JSON.parse(data);
-              acc += piece;
-            } catch {
-              acc += data;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const packet = buffer.slice(0, idx).trim();
+          buffer = buffer.slice(idx + 2);
+          if (!packet) continue;
+          const line = packet.startsWith("data:") ? packet.slice(5).trim() : packet;
+          if (!line || line === "[DONE]") continue;
+          try {
+            const j = JSON.parse(line);
+            const delta = typeof j === "string" ? j : j.delta ?? j.content ?? j.choices?.[0]?.delta?.content ?? "";
+            if (delta) {
+              acc += delta;
+              setLive((s) => ({ ...s, text: acc }));
+            }
+          } catch {
+            const unquoted = line.replace(/^"+|"+$/g, "");
+            if (unquoted && unquoted !== "[DONE]") {
+              acc += unquoted;
+              setLive((s) => ({ ...s, text: acc }));
             }
           }
-        });
-        setLive(l => ({ ...l, text: acc }));
-      }
-    } catch (e){
-      setLive({ running:false, text:"", error: e.message, preview:null });
-      return;
-    }
-
-    // Na stream → gestructureerde JSON ophalen
-    try {
-      const json = await fetch("/api/ai/compose", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ prompt })
-      }).then(r=>r.json());
-
-      setResults(r => [
-        ...r,
-        {
-          ...json,
-          kind: mode,
-          query: userInput,
-          contextCounts: context.counts,
-          createdAt: new Date().toISOString(),
-          title: (json?.title) || (modes.find(m=>m.key===mode)?.label + " - resultaat")
         }
-      ]);
-    } catch(e){
-      setLive({ running:false, text:"", error: e.message, preview:null });
-      return;
-    }
+      }
 
-    setLive({ running:false, text:"", error:"", preview:null });
+      const structured = safeJsonParse(acc);
+      const label =
+        mode === "bijbelstudie" ? "Bijbelstudie" :
+        mode === "preek" ? "Preek" :
+        mode === "liederen" ? "Liederen" :
+        "Actueel & Media";
+
+      if (structured && typeof structured === "object") {
+        addAiResult({ id: newId(), kind: mode, title: `${label} — gegenereerde opzet`, structured, createdAt: new Date().toISOString() });
+      } else {
+        addAiResult({ id: newId(), kind: mode, title: `${label} — (stream, ongestructureerd)`, text: acc, createdAt: new Date().toISOString() });
+      }
+      setLive({ running: false, text: "", error: "" });
+    } catch (e) {
+      setLive({ running: false, text: "", error: e.message || "AI-stream-fout" });
+      setAiError(e.message || "AI-stream-fout");
+    } finally {
+      setAiBusy(false);
+    }
   }
 
   return (
-    <div className="favorites-page">
-      <h2>Favorieten</h2>
-
-      {/* Context-preview */}
-      <div className="context-preview" style={{margin:"8px 0", opacity:0.9}}>
-        <small>Context: {contextPreview() || "geen data gevonden"}</small>
-      </div>
-
-      {/* User input */}
-      <div style={{display:"flex", gap:8, margin:"8px 0"}}>
-        <input
-          value={userInput}
-          onChange={e=>setUserInput(e.target.value)}
-          placeholder="Extra focus of vraag (optioneel)…"
-          style={{flex:1, padding:"8px"}}
-        />
-      </div>
-
-      {/* Modes */}
-      <div className="ai-modes" style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8}}>
-        {modes.map(m => (
-          <button key={m.key} onClick={()=>generate(m.key)}>{m.label}</button>
-        ))}
-      </div>
-
-      {/* Live stream */}
-      {live.running && (
-        <div className="live-stream" style={{marginTop:16, border:"1px solid #eee", borderRadius:6, padding:12}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <h4 style={{margin:0}}>Extra instructies (streaming)</h4>
-            <small>{live.preview?.mode} • {contextPreview()}</small>
-          </div>
-          <pre style={{whiteSpace:"pre-wrap"}}>{live.text}</pre>
+    <section className="max-w-6xl mx-auto p-3 sm:p-4 space-y-6">
+      {/* Genereer opzet */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h2 className="text-lg font-semibold mb-3">🧠 Genereer opzet</h2>
+        <div className="grid sm:grid-cols-4 gap-3 mb-3">
+          {[
+            { id: "bijbelstudie", title: "Bijbelstudie" },
+            { id: "preek", title: "Preek" },
+            { id: "liederen", title: "Liederen" },
+            { id: "actueelmedia", title: "Actueel & Media" },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => setMode(opt.id)}
+              className={
+                "p-3 rounded-lg border transition " +
+                (mode === opt.id
+                  ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30"
+                  : "border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700")
+              }
+            >
+              <div className="font-medium">{opt.title}</div>
+            </button>
+          ))}
         </div>
-      )}
 
-      {/* Results */}
-      <div className="ai-results" style={{marginTop:16, display:"grid", gap:12}}>
-        {results.map((r,i)=>(<AiResultCard key={i} result={r}/>))}
+        <textarea
+          className="w-full p-2 rounded border dark:bg-gray-900 dark:border-gray-700"
+          rows={2}
+          value={extra}
+          onChange={(e) => setExtra(e.target.value)}
+          placeholder="Extra instructies (optioneel)…"
+        />
+
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            disabled={aiBusy}
+            onClick={generateStream}
+            className={"px-3 py-1.5 rounded text-sm " + (aiBusy ? "bg-gray-300" : "bg-indigo-600 text-white hover:bg-indigo-700")}
+          >
+            Genereer (stream)
+          </button>
+          {aiBusy && <span className="text-sm text-gray-600">⏳ Bezig…</span>}
+          {aiError && <span className="text-sm text-amber-600">{aiError}</span>}
+        </div>
+
+        {live.running || live.text ? (
+          <div className="mt-4 rounded-lg border p-3 bg-indigo-50/40">
+            <div className="text-sm font-semibold mb-2">AI (live)</div>
+            {live.error ? (
+              <div className="text-sm text-red-600">{live.error}</div>
+            ) : (
+              <AiPretty text={live.text || "…"} />
+            )}
+          </div>
+        ) : null}
       </div>
 
-      {/* Error */}
-      {live.error && (
-        <div style={{marginTop:12, color:"#b00020"}}>Fout: {live.error}</div>
-      )}
-    </div>
+      {/* AI-resultaten */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-2">🤖 AI-resultaten</h3>
+        {aiResults.length === 0 ? (
+          <p className="text-gray-500">Nog geen AI-resultaten. (<Link to="/" className="text-blue-600 hover:underline">Zoeken »</Link>)</p>
+        ) : (
+          <div className="grid gap-4">
+            {aiResults.map((r) => (
+              <article key={r.id} className="border rounded-lg p-3 bg-white dark:bg-gray-900">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="font-medium">{r.title}</div>
+                  <button
+                    type="button"
+                    className="text-red-500 hover:text-red-600 text-sm"
+                    onClick={() => removeAiResult(r.id)}
+                  >
+                    Verwijderen
+                  </button>
+                </div>
+                {r.structured ? <AiResultCard result={r} /> : <AiPretty text={r.text} />}
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Favoriete teksten */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">⭐ Teksten</h3>
+        {favTexts.length === 0 ? (
+          <p className="text-gray-500">Nog geen teksten toegevoegd. (<Link to="/" className="text-blue-600 hover:underline">Zoeken »</Link>)</p>
+        ) : (
+          <div className="grid gap-4">
+            {favTexts.map((t) => (
+              <div key={t._id || t.ref} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{t.ref}</span>
+                  <button className="text-red-500 hover:text-red-600" onClick={() => removeFavText(t._id || t.ref)}>Verwijderen</button>
+                </div>
+                <p className="text-sm mb-3 whitespace-pre-wrap">{t.text}</p>
+                <input
+                  className="w-full text-sm p-2 rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-900"
+                  value={t.note || ""}
+                  onChange={(e) => updateFavTextNote(t._id || t.ref, e.target.value)}
+                  placeholder="Notitie bij deze tekst."
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Favoriete grafieken */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">📊 Grafieken</h3>
+        {favCharts.length === 0 ? (
+          <p className="text-gray-500">Nog geen grafieken toegevoegd. (<Link to="/" className="text-blue-600 hover:underline">Zoeken »</Link>)</p>
+        ) : (
+          <div className="grid gap-4">
+            {favCharts.map((c) => (
+              <div key={c.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="font-medium">{c.title}</div>
+                    <div className="text-xs text-gray-500">Woorden: {(c.words || []).join(", ")}</div>
+                  </div>
+                  <button className="text-red-500 hover:text-red-600" onClick={() => removeFavChart(c.id)}>Verwijderen</button>
+                </div>
+                <WordFrequencyChart
+                  queryWords={c.words}
+                  version={c.version}
+                  onClickDrill={null}
+                  onFavChart={null}
+                />
+                <input
+                  className="mt-3 w-full text-sm p-2 rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-900"
+                  value={c.note || ""}
+                  onChange={(e) => updateFavChartNote(c.id, e.target.value)}
+                  placeholder="Notitie bij deze grafiek."
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
