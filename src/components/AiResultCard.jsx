@@ -12,10 +12,9 @@ export default function AiResultCard({ result }) {
     outline:
       result.outline ||
       result.kopjes ||
-      result.inhoud?.map((b) => ({
-        title: b.kop || b.titel,
-        content: [b.tekst, ...(b.bijbelteksten?.map((t) => t.referentie) || [])],
-      })),
+      result.kopjes_en_inhoud ||
+      result.hoofdstukken ||
+      result.inhoud,
     background: result.background || result.achtergrond,
     application: result.application || result.toepassing,
     prayer: result.prayer || result.gebed,
@@ -24,6 +23,7 @@ export default function AiResultCard({ result }) {
     songs: result.songs || result.liederen,
     news: result.news || result.nieuws,
     media: result.media || result.mediaitems,
+    date: result.date || result.datum,
     text: result.text,
   };
 
@@ -39,6 +39,7 @@ export default function AiResultCard({ result }) {
   return (
     <div className="ai-card space-y-4 bg-white dark:bg-gray-900 p-4 rounded-lg shadow">
       {norm.title && <h3 className="text-xl font-bold mb-2">{norm.title}</h3>}
+      {norm.date && <p className="text-sm text-gray-500">{norm.date}</p>}
 
       {norm.summary && (
         <Section icon="📝" title="Samenvatting">
@@ -46,7 +47,64 @@ export default function AiResultCard({ result }) {
         </Section>
       )}
 
-      {/* Bijbelstudie */}
+      {/* Outline / Hoofdstukken / Inhoud */}
+      {norm.outline && (
+        <Section icon="🗂" title="Structuur">
+          {norm.outline.map((o, i) =>
+            typeof o === "string" ? (
+              <p key={i}>{o}</p>
+            ) : (
+              <div key={i} className="mb-2">
+                {o.kop || o.kopje || o.title ? (
+                  <div className="font-medium">
+                    {o.kop || o.kopje || o.title}
+                  </div>
+                ) : null}
+                {o.tekst && <p>{o.tekst}</p>}
+                {o.inhoud && Array.isArray(o.inhoud) && (
+                  <ul className="list-disc pl-5 space-y-1">
+                    {o.inhoud.map((line, j) => (
+                      <li key={j}>{line}</li>
+                    ))}
+                  </ul>
+                )}
+                {o.opsomming && (
+                  <ul className="list-disc pl-5 space-y-1">
+                    {o.opsomming.map((line, j) => (
+                      <li key={j}>{line}</li>
+                    ))}
+                  </ul>
+                )}
+                {o.bijbelteksten && (
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    {o.bijbelteksten.map((b, j) => (
+                      <li key={j}>{b.referentie || b.ref}</li>
+                    ))}
+                  </ul>
+                )}
+                {o.coupletten && (
+                  <div className="ml-3">
+                    {o.coupletten.map((c, j) => (
+                      <div key={j} className="mb-2">
+                        <div className="font-medium">{c.kop}</div>
+                        {c.tekst && (
+                          <ul className="list-disc pl-5 space-y-1">
+                            {c.tekst.map((line, k) => (
+                              <li key={k}>{line}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          )}
+        </Section>
+      )}
+
+      {/* Bijbelstudie specifieke */}
       {norm.type === "bijbelstudie" && norm.central_passages && (
         <Section icon="📖" title="Centrale gedeelten">
           {norm.central_passages.map((c, i) => (
@@ -54,7 +112,7 @@ export default function AiResultCard({ result }) {
               <div className="font-medium">{c.ref || c.referentie}</div>
               {c.text && (
                 <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-2 rounded">
-                  {c.text || c.tekst}
+                  {c.text}
                 </pre>
               )}
               {c.reason && <p className="italic text-sm">{c.reason}</p>}
@@ -72,29 +130,7 @@ export default function AiResultCard({ result }) {
         </Section>
       )}
 
-      {/* Preek */}
-      {norm.type === "preek" && norm.outline && (
-        <Section icon="🗂" title="Hoofdlijnen">
-          <ul className="list-disc pl-5 space-y-1">
-            {norm.outline.map((o, i) =>
-              typeof o === "string" ? (
-                <li key={i}>{o}</li>
-              ) : (
-                <li key={i}>
-                  <div className="font-medium">{o.title}</div>
-                  {o.content && (
-                    <ul className="list-disc pl-5 space-y-1">
-                      {o.content.map(
-                        (c, j) => c && <li key={j}>{c}</li>
-                      )}
-                    </ul>
-                  )}
-                </li>
-              )
-            )}
-          </ul>
-        </Section>
-      )}
+      {/* Preek specifieke */}
       {norm.type === "preek" && norm.background && (
         <Section icon="📚" title="Achtergrond & Verbanden">
           <ul className="list-disc pl-5 space-y-1">
@@ -132,7 +168,12 @@ export default function AiResultCard({ result }) {
                     <li key={i}>
                       <a
                         className="text-blue-600 hover:underline"
-                        href={l.url}
+                        href={
+                          l.url ||
+                          `https://www.youtube.com/results?search_query=${encodeURIComponent(
+                            l.title
+                          )}`
+                        }
                         target="_blank"
                       >
                         {l.title}
@@ -189,7 +230,12 @@ export default function AiResultCard({ result }) {
               <li key={i}>
                 <a
                   className="text-blue-600 hover:underline"
-                  href={m.url}
+                  href={
+                    m.url ||
+                    `https://www.youtube.com/results?search_query=${encodeURIComponent(
+                      m.title
+                    )}`
+                  }
                   target="_blank"
                 >
                   {m.title || m.url}
