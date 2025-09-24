@@ -3,12 +3,9 @@ import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 import WordFrequencyChart from "../components/WordFrequencyChart";
 import AiResultCard from "../components/AiResultCard";
-import AiPretty from "../components/AiPretty";
 import { Link } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
-const API = (API_BASE || "/api").replace(/\/+$/, "");
-
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -22,21 +19,40 @@ function safeJsonParse(maybe) {
   try { return JSON.parse(txt); } catch { return null; }
 }
 
-// helper to fetch top book hits
-async function fetchBookHits(words, version, searchMode) {
-  if (!words?.length) return [];
-  const url = `${API}/stats/hitsByBook?version=${encodeURIComponent(version)}&mode=${encodeURIComponent(searchMode)}&words=${encodeURIComponent(words.join(","))}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (!Array.isArray(data?.data)) return [];
-    return data.data
-      .filter(r => r.book && r.hits)
-      .sort((a,b) => b.hits - a.hits)
-      .slice(0, 8)
-      .map(r => `${r.book} (${r.hits})`);
-  } catch { return []; }
+/* Fallback renderer for streaming prose */
+function AiPretty({ text = "" }) {
+  const verseRefRe =
+    /\b((Gen|Ex|Lev|Num|Deut|Joz|Richt|Rut|1 Sam|2 Sam|1 Kon|2 Kon|1 Kron|2 Kron|Ezra|Neh|Est|Job|Ps(?:alm|almen)?|Spr|Pred|Hoogl|Jes|Jer|Kla|Ezech|Dan|Hos|Joël|Amos|Obad|Jona|Micha|Nah|Hab|Zef|Hag|Zach|Mal|Mat|Matt|Marcus|Mar|Luk|Lucas|Joh|Johannes|Hand|Rom|Romeinen|1 Kor|2 Kor|Gal|Ef|Efeze|Fil|Filippenzen|Kol|1 Thess|2 Thess|1 Tim|2 Tim|Tit|Filem|Hebr?|Jak|1 Petr|2 Petr|1 Joh|2 Joh|3 Joh|Judas|Openb?|Openbaring)\.?\s*\d+:\d+(?:-\d+)?)\b/gi;
+
+  const lines = String(text).replaceAll("\r\n", "\n").split("\n");
+  const blocks = [];
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.startsWith("### ")) blocks.push({ t: "h3", v: l.slice(4) });
+    else if (l.startsWith("## ")) blocks.push({ t: "h2", v: l.slice(3) });
+    else if (/^\s*-\s+/.test(l)) {
+      const items = [];
+      while (i < lines.length && /^\s*-\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*-\s+/, ""));
+        i++;
+      }
+      i--;
+      blocks.push({ t: "ul", v: items });
+    } else if (!l.trim()) blocks.push({ t: "space" });
+    else blocks.push({ t: "p", v: l });
+  }
+  const hi = (s) => s.replace(verseRefRe, (m) => `<span class="font-semibold text-indigo-700">${m}</span>`);
+  return (
+    <div className="text-[0.95rem] leading-6 space-y-3">
+      {blocks.map((b, idx) => {
+        if (b.t === "h2") return <h3 key={idx} className="text-lg font-semibold border-b border-gray-200 pb-1">{b.v}</h3>;
+        if (b.t === "h3") return <h4 key={idx} className="text-base font-semibold text-indigo-700">{b.v}</h4>;
+        if (b.t === "ul") return <ul key={idx} className="list-disc pl-6 space-y-1">{b.v.map((it, i2) => <li key={i2} dangerouslySetInnerHTML={{ __html: hi(it) }} />)}</ul>;
+        if (b.t === "space") return <div key={idx} className="h-2" />;
+        return <p key={idx} className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: hi(b.v) }} />;
+      })}
+    </div>
+  );
 }
 
 export default function Favorites() {
@@ -45,7 +61,6 @@ export default function Favorites() {
     favTexts, removeFavText, updateFavTextNote,
     favCharts, removeFavChart, updateFavChartNote,
     aiResults, addAiResult, removeAiResult,
-    version, searchMode
   } = useApp();
 
   const [mode, setMode] = useState("bijbelstudie");
@@ -56,44 +71,19 @@ export default function Favorites() {
 
   async function buildContext() {
     const parts = [];
-    let wordsSet = new Set();
-
-    if (generalNotes?.trim()) {
-      parts.push(`# Algemene notities\n${generalNotes.trim()}`);
-    }
-
+    if (generalNotes?.trim()) parts.push(`# Algemene notities\n${generalNotes.trim()}`);
     if (favTexts?.length) {
       parts.push("# ⭐ Favoriete teksten");
-      favTexts.slice(0, 30).forEach((t) => {
+      favTexts.slice(0, 20).forEach((t) => {
         parts.push(`**${t.ref || ""}**\n${t.text || ""}` + (t.note ? `\n_notitie:_ ${t.note}` : ""));
       });
     }
-
     if (favCharts?.length) {
       parts.push("# 📊 Grafieken");
-      favCharts.slice(0, 10).forEach((c) => {
-        const words = (c.words || []).filter(Boolean);
-        words.forEach((w) => wordsSet.add(w));
-        parts.push(`- ${c.title || words.join(", ")}`);
+      favCharts.slice(0, 5).forEach((c) => {
+        parts.push(`- ${c.title || (c.words || []).join(", ")}`);
       });
     }
-
-    const wordsArr = Array.from(wordsSet);
-    if (wordsArr.length) {
-      parts.push("## Totaal verzamelde zoekwoorden");
-      parts.push(wordsArr.join(", "));
-    }
-
-    const topBooks = await fetchBookHits(wordsArr, version, searchMode);
-    if (topBooks?.length) {
-      parts.push("## Topboeken (meeste treffers)");
-      topBooks.forEach((b) => parts.push(`- ${b}`));
-    }
-
-    parts.push("## Metadata");
-    parts.push(`Bijbelversie: ${version}`);
-    parts.push(`Zoekmodus: ${searchMode}`);
-
     return parts.join("\n\n");
   }
 
@@ -104,21 +94,11 @@ export default function Favorites() {
     setAiBusy(true);
 
     try {
-            // Probeer canoniek pad, val terug op oud pad (prod)
-      let url = `${API}/compose/stream`;
-      let res = await fetch(url, {
+      const res = await fetch(`${API_BASE}/api/ai/compose/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, extra: extra.trim(), context }),
       });
-      if (res.status === 404) {
-        url = `${API}/ai/compose/stream`;
-        res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode, extra: extra.trim(), context }),
-        });
-      }
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 
       const reader = res.body.getReader();
@@ -224,14 +204,12 @@ export default function Favorites() {
         </div>
 
         {live.running || live.text ? (
-          <div className="mt-4 bg-white dark:bg-gray-900 p-4 rounded-lg shadow border">
-            <h4 className="text-indigo-700 font-semibold mb-2">📝 AI (live)</h4>
+          <div className="mt-4 rounded-lg border p-3 bg-indigo-50/40">
+            <div className="text-sm font-semibold mb-2">AI (live)</div>
             {live.error ? (
-              <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{live.error}</div>
+              <div className="text-sm text-red-600">{live.error}</div>
             ) : (
-              <div className="max-h-96 overflow-y-auto">
-                <AiPretty text={live.text || "…"} />
-              </div>
+              <AiPretty text={live.text || "…"} />
             )}
           </div>
         ) : null}
