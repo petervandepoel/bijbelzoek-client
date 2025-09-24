@@ -6,7 +6,7 @@ import WordFrequencyChart from "../components/WordFrequencyChart";
 import SearchResults from "../components/SearchResults";
 import ChapterModal from "../components/ChapterModal";
 import { useApp } from "../context/AppContext";
-import API_BASE from "../config";   // 🔹 API base url
+import API_BASE from "../config";   // 🔹 nieuwe config import
 
 export default function SearchPage() {
   const { version, searchMode, savedState, setSavedState, addFavChart } = useApp();
@@ -74,14 +74,14 @@ export default function SearchPage() {
         const qs = new URLSearchParams({
           version,
           mode: searchMode || "or",
-          words: words.join(","),        // 🔹 FIX: gebruik altijd words=
+          q: words.join(","),
           ...(book ? { book } : {}),
           page: "1",
           resultLimit: "50",
         }).toString();
 
-        const base = (API_BASE || '').replace(/\/+$/, ''); // trailing slash weg
-        const url = `${base}/search?${qs}`;        console.log("🔎 Fetching:", url);
+        const url = `${API_BASE}/api/search?${qs}`;
+        console.log("🔎 Fetching:", url);
 
         const res = await fetch(url);
         const data = await res.json();
