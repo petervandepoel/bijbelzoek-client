@@ -33,6 +33,7 @@ export default function SearchPage() {
     const initial = version === "HSV" ? "geloof, genade" : "faith, grace";
     setQuery(initial);
     performSearch(initial, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version, searchMode]);
 
   // Thema’s laden
@@ -74,18 +75,22 @@ export default function SearchPage() {
         const qs = new URLSearchParams({
           version,
           mode: searchMode || "or",
-          words: words.join(","),        // 🔹 FIX: gebruik altijd words=
+          words: words.join(","), // altijd words=
           ...(book ? { book } : {}),
           page: "1",
           resultLimit: "50",
         }).toString();
 
-        const base = (API_BASE || '').replace(/\/+$/, ''); // trailing slash weg
-        const url = `${base}/search?${qs}`;        console.log("🔎 Fetching:", url);
+        // 🔧 ROBUUST: forceer altijd '/api' in de basis-URL en voorkom dubbele slashes
+        const RAW_BASE = (API_BASE || "/api").replace(/\/+$/, "");
+        const API = RAW_BASE.endsWith("/api") ? RAW_BASE : `${RAW_BASE}/api`;
+        const url = `${API}/search?${qs}`;
+        console.log("🔎 Fetching:", url);
 
         const res = await fetch(url);
-        const data = await res.json();
-        console.log("🔎 API response:", data);
+        const text = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status} at ${url}\n${text.slice(0, 160)}`);
+        const data = JSON.parse(text);
 
         setResults(Array.isArray(data.results) ? data.results : []);
         setSavedState?.({ query: q, results: data.results, chartWords: words });
