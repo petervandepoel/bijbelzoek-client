@@ -1,7 +1,9 @@
-// client/src/components/AiPretty.jsx
 import React from "react";
 
 export default function AiPretty({ text = "" }) {
+  // strip control chars that sometimes sneak in from streams (fixes "Ø>Ýà" etc.)
+  const sanitize = (s) => String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+
   const verseRefRe =
     /\b((Gen|Ex|Lev|Num|Deut|Joz|Richt|Rut|1 Sam|2 Sam|1 Kon|2 Kon|1 Kron|2 Kron|Ezra|Neh|Est|Job|Ps(?:alm|almen)?|Spr|Pred|Hoogl|Jes|Jer|Kla|Ezech|Dan|Hos|Joël|Amos|Obad|Jona|Micha|Nah|Hab|Zef|Hag|Zach|Mal|Mat|Matt|Marcus|Mar|Luk|Lucas|Joh|Johannes|Hand|Rom|Romeinen|1 Kor|2 Kor|Gal|Ef|Efeze|Fil|Filippenzen|Kol|1 Thess|2 Thess|1 Tim|2 Tim|Tit|Filem|Hebr?|Jak|1 Petr|2 Petr|1 Joh|2 Joh|3 Joh|Judas|Openb?|Openbaring)\.?\s*\d+:\d+(?:-\d+)?)\b/gi;
 
@@ -20,7 +22,8 @@ export default function AiPretty({ text = "" }) {
         (m) => `<span class="font-semibold text-indigo-700">${m}</span>`
       );
 
-  const lines = String(text).replaceAll("\r\n", "\n").split("\n");
+  const clean = sanitize(text);
+  const lines = String(clean).replaceAll("\r\n", "\n").split("\n");
   const blocks = [];
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
@@ -41,10 +44,13 @@ export default function AiPretty({ text = "" }) {
   const iconFor = (title) => {
     if (/toepassing/i.test(title)) return "💡 " + title;
     if (/gebed/i.test(title)) return "🙏 " + title;
-    if (/achtergrond/i.test(title)) return "📚 " + title;
+    if (/achtergrond|verband/i.test(title)) return "📚 " + title;
     if (/gespreks/i.test(title)) return "💬 " + title;
+    if (/studie/i.test(title)) return "📘 " + title;
     if (/hoofdlijnen/i.test(title)) return "🗂 " + title;
-    if (/centrale/i.test(title)) return "📖 " + title;
+    if (/centrale|gedeelten/i.test(title)) return "📖 " + title;
+    if (/kinderen/i.test(title)) return "👧 " + title;
+    if (/contextanalyse|introductie/i.test(title)) return "🧭 " + title;
     return title;
   };
 
@@ -72,7 +78,7 @@ export default function AiPretty({ text = "" }) {
               {b.v.map((it, i2) => (
                 <li
                   key={i2}
-                  dangerouslySetInnerHTML={{ __html: linkify(it) }}
+                  dangerouslySetInnerHTML={{ __html: linkify(sanitize(it)) }}
                 />
               ))}
             </ul>
@@ -82,7 +88,7 @@ export default function AiPretty({ text = "" }) {
           <p
             key={idx}
             className="whitespace-pre-wrap text-gray-800 dark:text-gray-200"
-            dangerouslySetInnerHTML={{ __html: linkify(b.v) }}
+            dangerouslySetInnerHTML={{ __html: linkify(sanitize(b.v)) }}
           />
         );
       })}

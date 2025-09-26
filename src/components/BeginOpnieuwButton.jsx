@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
  * Subtiele knop om lokaal opgeslagen favorieten + AI-resultaten te wissen.
  * - Maakt eerst een backup in sessionStorage (bz_fav_backup)
  * - Wist bekende én vermoedelijke keys (favorites + ai results)
+ * - Herstelt ook de uitlegbalk door search_help_dismissed te wissen
  * - Herlaadt de pagina om in-memory state te resetten
  * - Toont een klein "Herstel" linkje zolang de session open is
  */
@@ -40,6 +41,8 @@ export default function BeginOpnieuwButton({
       "aiDraft",
       "aiOutput",
       "aiNotes",
+      // uitleg/dismissed
+      "search_help_dismissed",
     ];
 
     // Dynamisch detecteren (ruimer)
@@ -49,7 +52,8 @@ export default function BeginOpnieuwButton({
         const k = localStorage.key(i) || "";
         if (
           /fav|favorite|favorites|bz_?fav/i.test(k) || // favorieten
-          /(^|:)ai|ai(result|output|draft|notes)?/i.test(k) // AI-gerelateerd
+          /(^|:)ai|ai(result|output|draft|notes)?/i.test(k) || // AI-gerelateerd
+          /search_help_dismissed/i.test(k) // uitleg
         ) {
           dynamic.push(k);
         }
@@ -86,14 +90,12 @@ export default function BeginOpnieuwButton({
     if (!window.confirm("Weet je zeker dat je ALLE favorieten en AI-resultaten wilt wissen?")) return;
     clearLocal();
 
-    // *optioneel* event voor eigen listeners in je app (als je die later wil gebruiken)
     try {
       window.dispatchEvent(new CustomEvent("bz:begin-opnieuw"));
     } catch {
       /* noop */
     }
 
-    // 3) reload zodat in-memory state schoon is
     window.location.reload();
   };
 
@@ -116,12 +118,11 @@ export default function BeginOpnieuwButton({
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {/* Subtiele ‘ghost’ stijl — rustig in de header */}
       <button
         type="button"
         onClick={handleClear}
         className="text-xs px-2 py-1 rounded-md border border-white/25 text-white/90 hover:bg-white/10 hover:text-white transition"
-        title="Wist lokaal bewaarde favorieten en AI-resultaten"
+        title="Wist lokaal bewaarde favorieten, AI-resultaten en herstelt uitleg"
       >
         {label}
       </button>

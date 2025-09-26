@@ -7,29 +7,22 @@ import SearchPage from "./pages/SearchPage.jsx";     // 🔹 vervangt Home.jsx
 import Favorites from "./pages/Favorites.jsx";
 import Uitleg from "./pages/Uitleg.jsx";
 import TipsEnOver from "./pages/TipsEnOver.jsx";
-import LandingPage from "./pages/Landing.jsx";
-
 import Statistieken from "./pages/Statistieken.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
 import "./index.css";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
-    errorElement: <AppErrorBoundary />,
     children: [
-      // LandingPage wordt nu de standaardpagina
-      { index: true, element: <LandingPage /> },
-
-      // expliciete routes
-      { path: "zoeken", element: <SearchPage /> },
-      { path: "search", element: <SearchPage /> },
+      { index: true, element: <SearchPage /> },      // 🔹 startpagina = SearchPage
+      { path: "landing", element: <LandingPage /> },
       { path: "favorites", element: <Favorites /> },
+      { path: "uitleg", element: <Uitleg /> },
+      { path: "tips-en-over", element: <TipsEnOver /> },
       { path: "statistieken", element: <Statistieken /> },
-
-      // fallback: onbekende paden → LandingPage
-      { path: "*", element: <Navigate to="/" replace /> },
     ],
   },
 ]);
