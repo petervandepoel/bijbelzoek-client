@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { X, Star } from "lucide-react";
 import { useApp } from "../context/AppContext";
 
-export default function ChapterModal({ open, onClose, version, book, chapter }) {
+export default function ChapterModal({ open, onClose, version, book, chapter, onChangeChapter }) {
   const { addFavText, isFavText, removeFavText } = useApp();
   const [verses, setVerses] = useState([]);
 
@@ -10,11 +10,7 @@ export default function ChapterModal({ open, onClose, version, book, chapter }) 
     if (!open || !book || !chapter) return;
     (async () => {
       try {
-        const res = await fetch(
-          `/api/chapter?version=${encodeURIComponent(
-            version || "HSV"
-          )}&book=${encodeURIComponent(book)}&chapter=${encodeURIComponent(chapter)}`
-        );
+        const res = await fetch(`/api/chapter?version=${encodeURIComponent(version || "HSV")}&book=${encodeURIComponent(book)}&chapter=${encodeURIComponent(chapter)}`);
         const json = await res.json();
         setVerses(Array.isArray(json.verses) ? json.verses : []);
       } catch {
@@ -25,10 +21,25 @@ export default function ChapterModal({ open, onClose, version, book, chapter }) 
 
   if (!open) return null;
 
+  const navButtons = (
+    <div className="flex justify-between mb-4">
+      <button
+        disabled={chapter <= 1}
+        onClick={() => onChangeChapter?.(chapter - 1)}
+        className="px-3 py-1 rounded bg-indigo-100 dark:bg-indigo-800 disabled:opacity-50">
+        ← Vorige
+      </button>
+      <button
+        onClick={() => onChangeChapter?.(chapter + 1)}
+        className="px-3 py-1 rounded bg-indigo-100 dark:bg-indigo-800">
+        Volgende →
+      </button>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow max-w-3xl w-full max-h-[85vh] overflow-auto">
-        {/* Sticky header */}
         <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
           <div className="font-semibold text-indigo-600">
             {book} {chapter}
@@ -38,36 +49,23 @@ export default function ChapterModal({ open, onClose, version, book, chapter }) 
           </button>
         </div>
 
-        {/* Verses list */}
         <div className="p-4 space-y-3">
+          {navButtons}
           {verses.map((v, idx) => {
             const ref =
-              v.ref ||
-              (v.verse != null
-                ? `${book} ${chapter}:${v.verse}`
-                : `${book} ${chapter}`);
+              v.ref || (v.verse != null ? `${book} ${chapter}:${v.verse}` : `${book} ${chapter}`);
             const text = v.text || v.content || "";
-
             const fav = typeof isFavText === "function" ? isFavText(ref) : false;
-
             const toggleFav = () => {
               if (!ref) return;
               if (fav) {
-                typeof removeFavText === "function"
-                  ? removeFavText(ref)
-                  : null;
+                typeof removeFavText === "function" ? removeFavText(ref) : null;
               } else {
-                typeof addFavText === "function"
-                  ? addFavText({ ref, text })
-                  : null;
+                typeof addFavText === "function" ? addFavText({ ref, text }) : null;
               }
             };
-
             return (
-              <div
-                key={v._id || ref || `${book}-${chapter}-${v.verse ?? idx}`}
-                className="bg-gray-50 dark:bg-gray-900 rounded p-3"
-              >
+              <div key={v._id || ref || `${book}-${chapter}-${v.verse ?? idx}`} className="bg-gray-50 dark:bg-gray-900 rounded p-3">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-sm text-indigo-600">{ref}</span>
                   <button
@@ -89,9 +87,8 @@ export default function ChapterModal({ open, onClose, version, book, chapter }) 
               </div>
             );
           })}
-          {(!verses || verses.length === 0) && (
-            <p className="text-sm text-gray-500">Geen verzen gevonden.</p>
-          )}
+          {(!verses || verses.length === 0) && <p className="text-sm text-gray-500">Geen verzen gevonden.</p>}
+          {navButtons}
         </div>
       </div>
     </div>
