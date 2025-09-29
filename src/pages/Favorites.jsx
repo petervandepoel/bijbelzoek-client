@@ -853,7 +853,7 @@ async function exportAll(fmt) {
                   (aiBusy ? "bg-gray-300" : "bg-indigo-600 text-white hover:bg-indigo-700")
                 }
               >
-                Genereer (stream)
+                Start (klik hier) voor de verrijking met AI
               </button>
               {aiBusy && <span className="text-sm text-gray-600">⏳ Bezig…</span>}
               {aiError && <span className="text-sm text-amber-600">{aiError}</span>}
