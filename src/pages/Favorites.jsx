@@ -813,7 +813,7 @@ async function exportAll(fmt) {
         <>
           {/* AI blok */}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-3">🧠 Genereer opzet</h2>
+            <h2 className="text-lg font-semibold mb-3">🧠 Genereer context met AI</h2>
             <div className="grid sm:grid-cols-4 gap-3 mb-3">
               {[
                 { id: "bijbelstudie", title: "Bijbelstudie" },
@@ -841,7 +841,7 @@ async function exportAll(fmt) {
               rows={2}
               value={extra}
               onChange={(e) => setExtra(e.target.value)}
-              placeholder="Extra instructies (optioneel)…"
+              placeholder="Kies hierboven een onderdeel uit. Voeg daarna eventueel extra instructies toe (optioneel). Let op: Hoe meer teksten en grafieken samengesteld en hoe beter je eigen notities, opmerkingen, vragen, hoe beter de output. Klik daarna op onderstaande knop."
             />
 
             <div className="mt-3 flex items-center gap-2">
@@ -853,7 +853,7 @@ async function exportAll(fmt) {
                   (aiBusy ? "bg-gray-300" : "bg-indigo-600 text-white hover:bg-indigo-700")
                 }
               >
-                Start (klik hier) voor de verrijking met AI
+                Start (klik hier)
               </button>
               {aiBusy && <span className="text-sm text-gray-600">⏳ Bezig…</span>}
               {aiError && <span className="text-sm text-amber-600">{aiError}</span>}
@@ -880,7 +880,7 @@ async function exportAll(fmt) {
             <h3 className="text-lg font-semibold mb-2">🤖 AI-resultaten</h3>
             {aiResults.length === 0 ? (
               <p className="text-gray-500">
-                Nog geen AI-resultaten. (
+                Nog geen AI-resultaten. Zorg voor voldoende teksten en grafieken, en ga daarna naar de AI sectie hierboven (
                 <Link to="/" className="text-blue-600 hover:underline">Zoeken »</Link>
                 )
               </p>
