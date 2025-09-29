@@ -1,35 +1,25 @@
-// client/src/pages/LandingPage.jsx
+// src/pages/LandingPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search as SearchIcon, BookOpenCheck, LineChart, Brain, Download } from "lucide-react";
+import {
+  Search as SearchIcon,
+  BookOpenCheck,
+  LineChart,
+  Brain,
+  Download,
+} from "lucide-react";
+import { getHSVThemes } from "../utils/parseThemes";
 
-/**
- * LandingPage.jsx — aangepast:
- * - Navigatie naar "/zoeken" met ?words=... (SearchPage pakt dit op als favoriet + eerste zoekopdracht)
- * - Thema-zoeken gebruikt themawoorden (niet het label)
- */
-
-const KEYWORD_SUGGESTIONS = [
-  "geloof",
-  "genade",
-  "vergeving",
-  "gerechtigheid",
-  "heiliging",
-  "liefde",
-  "hoop",
-  "gebed",
-  "Isra\u00ebl",
-  "Heilige Geest",
+// vaste zoekwoord-groepen (roller)
+const KEYWORD_GROUPS = [
+  "genade, vergeving, liefde, verlossing",
+  "geloof, hoop, liefde",
+  "Israël, verbond, priester",
+  "zonde, schuld, berouw",
+  "Zoekwoord A, B, C",
 ];
 
-const THEME_SUGGESTIONS = [
-  { label: "Hoop & Troost", words: ["hoop", "troost"] },
-  { label: "Vergeving & Genade", words: ["vergeving", "genade"] },
-  { label: "Dankbaarheid", words: ["dank", "dankbaarheid"] },
-  { label: "Lijden & Volharding", words: ["lijden", "volharding"] },
-  { label: "Kerk & Gemeenschap", words: ["gemeente", "broeders"] },
-];
-
+// random helper
 function pickRandom(arr, n) {
   const copy = [...arr];
   const out = [];
@@ -41,63 +31,41 @@ function pickRandom(arr, n) {
 
 export default function LandingPage() {
   const navigate = useNavigate();
-
-  const [mode, setMode] = useState("keywords"); // "keywords" | "themes"
   const [idx, setIdx] = useState(0);
   const [query, setQuery] = useState("");
-  const [chips, setChips] = useState([]);
 
-  const activeList =
-    mode === "keywords" ? KEYWORD_SUGGESTIONS : THEME_SUGGESTIONS.map((t) => t.label);
+  const [themes] = useState(getHSVThemes());
+  const [randomThemes, setRandomThemes] = useState([]);
+  const [showAllThemes, setShowAllThemes] = useState(false);
 
-  // placeholder-roller
+  // roller: zoekwoord-groepen
   useEffect(() => {
-    const t = setInterval(() => setIdx((i) => (i + 1) % activeList.length), 2500);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
-
-  // auto switch tussen modes
-  useEffect(() => {
-    const t = setInterval(() => setMode((m) => (m === "keywords" ? "themes" : "keywords")), 6000);
+    const t = setInterval(
+      () => setIdx((i) => (i + 1) % KEYWORD_GROUPS.length),
+      2500
+    );
     return () => clearInterval(t);
   }, []);
 
-  // dynamische chips
+  // kies random thema’s bij laden
   useEffect(() => {
-    const next =
-      mode === "keywords"
-        ? pickRandom(KEYWORD_SUGGESTIONS, 8)
-        : pickRandom(THEME_SUGGESTIONS, 8).map((t) => t.label);
-    setChips(next);
+    if (themes.length > 0) {
+      setRandomThemes(pickRandom(themes, 5));
+    }
+  }, [themes]);
 
-    const t = setInterval(() => {
-      const n =
-        mode === "keywords"
-          ? pickRandom(KEYWORD_SUGGESTIONS, 8)
-          : pickRandom(THEME_SUGGESTIONS, 8).map((t) => t.label);
-      setChips(n);
-    }, 10000);
-    return () => clearInterval(t);
-  }, [mode]);
+  const placeholder = useMemo(() => KEYWORD_GROUPS[idx], [idx]);
 
-  const rollerText = useMemo(
-    () => (mode === "keywords" ? "Start met zoekwoorden" : "Of kies een thema"),
-    [mode]
-  );
-  const placeholder = activeList[idx] || "Zoek in de Bijbel";
-
-  // 👉 Navigeren naar SearchPage met ?words=...
-  function navigateToSearch(value) {
+  // 👉 navigatie met HSV + fuzzy
+  function navigateToSearch(value, themeObj) {
     let q = value || query || placeholder || "";
-    const theme = THEME_SUGGESTIONS.find((t) => t.label === q);
-    if (theme) q = theme.words.join(", "); // zoek op thema-woorden
-    q = q.trim();
     if (!q) return;
 
-    // Alleen 'words' is nodig: SearchPage maakt dit de favoriet + voert eerste zoekopdracht uit
+    if (themeObj) {
+      q = themeObj.words.join(", ");
+    }
     const params = new URLSearchParams({ words: q });
-    navigate(`/zoeken?${params.toString()}`); // ✅ juiste route
+    navigate(`/zoeken?${params.toString()}`);
   }
 
   function onSubmit(e) {
@@ -106,7 +74,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-[82vh] bg-gradient-to-b from-white to-indigo-50/40">
+    <div className="min-h-[82vh] bg-gradient-to-b from-white to-indigo-50/40 text-gray-900">
       <section className="max-w-6xl mx-auto px-4 pt-10 pb-6">
         {/* Intro */}
         <div className="text-indigo-700 mb-3 text-xs uppercase tracking-wide font-semibold">
@@ -117,18 +85,19 @@ export default function LandingPage() {
           <span className="text-indigo-700">Start hier je zoektocht</span>
         </h1>
         <p className="mt-3 text-gray-700 md:text-lg max-w-prose">
-          Zoek en vind relevante teksten — zie patronen in grafieken — verrijk met AI — exporteer voor verdere studie.
+          Zoek en vind relevante teksten — zie patronen in grafieken — verrijk
+          met AI — exporteer voor verdere studie.
         </p>
 
-        {/* Volledige zoekbalk */}
+        {/* Zoekbalk */}
         <form onSubmit={onSubmit} className="mt-6">
           <div className="flex items-stretch rounded-2xl shadow-lg ring-1 ring-gray-200 bg-white overflow-hidden">
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`${rollerText}: ${placeholder}`}
-              className="flex-1 px-4 md:px-5 py-4 md:py-5 text-base md:text-lg outline-none"
+              placeholder={`Zoek op: ${placeholder}`}
+              className="flex-1 px-4 md:px-5 py-4 md:py-5 text-base md:text-lg outline-none text-gray-900"
               aria-label="Zoek in de Bijbel"
             />
             <button
@@ -140,22 +109,34 @@ export default function LandingPage() {
           </div>
         </form>
 
-        {/* Suggestie chips */}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {chips.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => navigateToSearch(c)}
-              className="px-3 py-1.5 rounded-full text-sm bg-white hover:bg-indigo-50 hover:text-indigo-700 border border-gray-200"
-              aria-label={`Zoek op ${c}`}
-            >
-              {c}
-            </button>
-          ))}
+        {/* Thema’s */}
+        <div className="mt-4">
+          <div className="font-semibold mb-2">Of kies een thema:</div>
+          <div className="flex flex-wrap gap-2">
+            {(showAllThemes ? themes : randomThemes).map((t) => (
+              <button
+                key={t.label}
+                type="button"
+                onClick={() => navigateToSearch(t.label, t)}
+                className="px-3 py-1.5 rounded-full text-sm bg-white hover:bg-indigo-50 hover:text-indigo-700 border border-gray-200"
+                aria-label={`Zoek thema ${t.label}`}
+              >
+                {t.label}
+              </button>
+            ))}
+            {!showAllThemes && themes.length > 5 && (
+              <button
+                type="button"
+                onClick={() => setShowAllThemes(true)}
+                className="px-3 py-1.5 rounded-full text-sm bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                Toon alle thema’s
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Feature-blokken onder de zoekbalk */}
+        {/* Features */}
         <div className="mt-8 grid sm:grid-cols-2 gap-3">
           <FeatureCard
             icon={BookOpenCheck}
@@ -178,14 +159,16 @@ export default function LandingPage() {
             text="Download teksten, grafieken en notities (PDF/DOCX) en gebruik dit voor verdere studie."
           />
         </div>
-    <footer className="bg-gray-100 text-center py-4 mt-12 text-sm text-gray-600">
-  <p>
-    © {new Date().getFullYear()} Bijbelzoek.nl —{" "}
-    <a href="/feedback" className="text-indigo-600 hover:underline">
-      Feedback & Info
-    </a>
-  </p>
-</footer>
+
+        {/* Footer */}
+        <footer className="bg-gray-100 text-center py-4 mt-12 text-sm text-gray-600">
+          <p>
+            © {new Date().getFullYear()} Bijbelzoek.nl —{" "}
+            <a href="/feedback" className="text-indigo-600 hover:underline">
+              Feedback & Info
+            </a>
+          </p>
+        </footer>
       </section>
     </div>
   );
@@ -200,8 +183,5 @@ function FeatureCard({ icon: Icon, title, text }) {
       <h3 className="text-base font-semibold mb-1">{title}</h3>
       <p className="text-gray-700 text-sm">{text}</p>
     </div>
-    
   );
-  
 }
-

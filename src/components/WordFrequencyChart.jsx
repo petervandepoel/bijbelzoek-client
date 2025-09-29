@@ -19,6 +19,55 @@ const palette = [
   "#a855f7", "#3b82f6", "#ec4899", "#84cc16", "#fb923c",
 ];
 
+// Officiële 3-letter afkortingen (NL & EN)
+const ABBR_NL = {
+  Genesis: "Gen", Exodus: "Exo", Leviticus: "Lev", Numeri: "Num",
+  Deuteronomium: "Deu", Jozua: "Joz", Richteren: "Rch", Ruth: "Rut",
+  "1 Samuel": "1Sa", "2 Samuel": "2Sa",
+  "1 Koningen": "1Ko", "2 Koningen": "2Ko",
+  "1 Kronieken": "1Kr", "2 Kronieken": "2Kr",
+  Ezra: "Ezr", Nehemia: "Neh", Ester: "Est", Job: "Job", Psalmen: "Psa",
+  Spreuken: "Spr", Prediker: "Pre", Hooglied: "Hgl", Jesaja: "Jes",
+  Jeremia: "Jer", Klaagliederen: "Kla", Ezechiël: "Eze", Daniël: "Dan",
+  Hosea: "Hos", Joël: "Joë", Amos: "Amo", Obadja: "Oba", Jona: "Jon",
+  Micha: "Mic", Nahum: "Nah", Habakuk: "Hab", Sefanja: "Sef",
+  Haggai: "Hag", Zacharia: "Zac", Maleachi: "Mal",
+  Mattheüs: "Mat", Markus: "Mar", Lukas: "Luk", Johannes: "Joh",
+  Handelingen: "Han", Romeinen: "Rom",
+  "1 Korinthe": "1Ko", "2 Korinthe": "2Ko",
+  Galaten: "Gal", Efeze: "Efe", Filippenzen: "Fil", Kolossenzen: "Kol",
+  "1 Thessalonicenzen": "1Th", "2 Thessalonicenzen": "2Th",
+  "1 Timotheüs": "1Ti", "2 Timotheüs": "2Ti",
+  Titus: "Tit", Filemon: "Fil", Hebreeën: "Heb", Jakobus: "Jak",
+  "1 Petrus": "1Pe", "2 Petrus": "2Pe",
+  "1 Johannes": "1Jo", "2 Johannes": "2Jo", "3 Johannes": "3Jo",
+  Judas: "Jud", Openbaring: "Openb",
+};
+
+const ABBR_EN = {
+  Genesis: "Gen", Exodus: "Exo", Leviticus: "Lev", Numbers: "Num",
+  Deuteronomy: "Deu", Joshua: "Jos", Judges: "Jdg", Ruth: "Rut",
+  "1 Samuel": "1Sa", "2 Samuel": "2Sa",
+  "1 Kings": "1Ki", "2 Kings": "2Ki",
+  "1 Chronicles": "1Ch", "2 Chronicles": "2Ch",
+  Ezra: "Ezr", Nehemiah: "Neh", Esther: "Est", Job: "Job", Psalms: "Psa",
+  Proverbs: "Pro", Ecclesiastes: "Ecc", "Song of Solomon": "Son", Isaiah: "Isa",
+  Jeremiah: "Jer", Lamentations: "Lam", Ezekiel: "Eze", Daniel: "Dan",
+  Hosea: "Hos", Joel: "Joe", Amos: "Amo", Obadiah: "Oba", Jonah: "Jon",
+  Micah: "Mic", Nahum: "Nah", Habakkuk: "Hab", Zephaniah: "Zep",
+  Haggai: "Hag", Zechariah: "Zec", Malachi: "Mal",
+  Matthew: "Mat", Mark: "Mar", Luke: "Luk", John: "Joh",
+  Acts: "Act", Romans: "Rom",
+  "1 Corinthians": "1Co", "2 Corinthians": "2Co",
+  Galatians: "Gal", Ephesians: "Eph", Philippians: "Phi", Colossians: "Col",
+  "1 Thessalonians": "1Th", "2 Thessalonians": "2Th",
+  "1 Timothy": "1Ti", "2 Timothy": "2Ti",
+  Titus: "Tit", Philemon: "Phm", Hebrews: "Heb", James: "Jam",
+  "1 Peter": "1Pe", "2 Peter": "2Pe",
+  "1 John": "1Jo", "2 John": "2Jo", "3 John": "3Jo",
+  Jude: "Jud", Revelation: "Rev",
+};
+
 function canonicalBooks(version) {
   return version === "HSV" ? BOOKS_NL : BOOKS_EN;
 }
@@ -47,21 +96,24 @@ function expandForStats(word) {
 
 export default function WordFrequencyChart({
   queryWords,
-  version: forcedVersion, // 👈 toegevoegd
+  version: forcedVersion,
   onClickDrill,
   onFavChart,
 }) {
   const app = useApp();
-
-  // 👇 Als een versie is meegegeven (bijv. via favoriet), gebruik die. Anders context.
   const version = forcedVersion || app?.version;
   const searchMode = app?.searchMode;
-
   const favCharts = app?.favCharts || [];
   const addFavChart = app?.addFavChart;
   const removeFavChart = app?.removeFavChart;
-
   const [data, setData] = useState([]);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 768 : false));
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const books = useMemo(() => canonicalBooks(version), [version]);
 
@@ -157,6 +209,17 @@ export default function WordFrequencyChart({
     return <p className="text-gray-500">Geen woorden opgegeven.</p>;
   }
 
+  // Custom formatter voor boeklabels
+  function formatBookLabel(book) {
+    if (!isMobile) return book;
+    const lower = book.toLowerCase();
+    if (lower.startsWith("gen")) return version === "HSV" ? "Genesis" : "Genesis";
+    if (lower.startsWith("openbar") || lower.startsWith("revel")) {
+      return version === "HSV" ? "Openbaring" : "Revelation";
+    }
+    return version === "HSV" ? (ABBR_NL[book] || book.slice(0, 3)) : (ABBR_EN[book] || book.slice(0, 3));
+  }
+
   return (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
       <div className="flex items-center justify-between mb-2">
@@ -172,38 +235,29 @@ export default function WordFrequencyChart({
           aria-pressed={isFavorited}
           title={isFavorited ? "Verwijderen uit favorieten" : "Toevoegen aan favorieten"}
         >
-          <Star
-            className="w-4 h-4"
-            stroke="currentColor"
-            fill={isFavorited ? "currentColor" : "none"}
-          />
+          <Star className="w-4 h-4" stroke="currentColor" fill={isFavorited ? "currentColor" : "none"} />
           <span>{isFavorited ? "Favoriet" : "Bewaar grafiek"}</span>
         </button>
       </div>
 
-      <div className="h-80">
+      <div className="h-60 md:h-80 overflow-x-auto">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} onClick={handleChartClick} margin={{ bottom: 70 }}>
+          <BarChart data={data} onClick={handleChartClick} margin={{ bottom: isMobile ? 40 : 70 }}>
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
             <XAxis
               dataKey="book"
               stroke="currentColor"
               interval={0}
-              tick={{ fontSize: 10 }}
-              angle={-60}
+              tick={{ fontSize: isMobile ? 9 : 10 }}
+              angle={isMobile ? -30 : -60}
               textAnchor="end"
+              tickFormatter={formatBookLabel}
             />
             <YAxis stroke="currentColor" />
             <Tooltip />
             <Legend verticalAlign="top" height={36} />
             {wordList.map((w, idx) => (
-              <Bar
-                key={w}
-                dataKey={w}
-                name={w}
-                stackId="a" // stacked view
-                fill={palette[idx % palette.length]}
-              />
+              <Bar key={w} dataKey={w} name={w} stackId="a" fill={palette[idx % palette.length]} />
             ))}
           </BarChart>
         </ResponsiveContainer>

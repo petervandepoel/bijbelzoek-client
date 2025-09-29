@@ -1,16 +1,44 @@
 NKJV: Redemption: grace, salvation, cross, eternal life
 NKJV: Faith: belief, trust, assurance
-HSV: Aanbidding: aanbidding, lof, loven, zang, zingen, muziek, knielen 
-HSV: Genade: genade, vergeving, vergeven, redding, verzoening, verlossing, liefde, barmhartigheid 
-HSV: Geloof: geloof, vertrouwen, gerechtigheid, hoop
-HSV: Gebed: gebed, bidden, knielen
-HSV: Hemel: hemel, troon, engelen, heerlijkheid
-HSV: Israël: israël, verbond, land, stammen, tempel, Jeruzalem, volk
+HSV: Abraham: geloof, verbond, offer, zegen, land
+HSV: Aanbidding: aanbidding, lof, zang, muziek, knielen
+HSV: Apostelen: petrus, johannes, jacobus, paulus, andreas
+HSV: Ark: verbond, tabernakel, manna, priester, david
+HSV: Bethlehem: david, geboorte, ster, herders, engel
+HSV: David: koning, psalmen, harp, verbond, strijd
+HSV: Exodus: mozës, egypte, farao, plagen, woestijn
+HSV: Galilea: meer, vissers, prediking, menigte, storm
+HSV: Gebed: gebed, bidden, knielen, lof, dank
+HSV: Genade: genade, vergeving, verlossing, liefde, barmhartigheid
+HSV: Geloof: geloof, vertrouwen, gerechtigheid, hoop, volharding
+HSV: Gethsémané: tuin, gebed, beker, verraad, discipelen
+HSV: Golgotha: kruis, dood, bloed, duisternis, opstanding
+HSV: Hemel: hemel, troon, engelen, heerlijkheid, stad
+HSV: Israël: israël, verbond, land, stammen, jeruzalem
 HSV: Jezus: jezus, heer, zoon, herder, verlosser
-HSV: Koninkrijk: koninkrijk, koning, troon, gerechtigheid, vrede, vreugde, eeuwig
-HSV: Kruis: kruis, bloed, offer, lijden, gehoorzaamheid, dood, overwinning
-HSV: Liefde: liefde, barmhartigheid, trouw, gebod, naaste, broeder, vergeving
-HSV: Zonde: zonde, zonden, overtreding, overtredingen, schuld, ongerechtigheid, kwaad
+HSV: Johannes: geliefde, evangelie, liefde, waarheid, profetie
+HSV: Jozef: droom, egypte, slavernij, vergeving, hongersnood
+HSV: Oordeel: troon, boeken, vuur, rechtvaardigen, dag
+HSV: Kerk: lichaam, gemeenschap, geest, bruid, aanbidding
+HSV: Koninkrijk: koninkrijk, koning, troon, gerechtigheid, vrede
+HSV: Kruis: kruis, bloed, offer, lijden, overwinning
+HSV: Liefde: liefde, trouw, gebod, naaste, vergeving
+HSV: Mozes: wet, verbond, berg, staf, leider
+HSV: Nazareth: galilea, timmerman, synagoge, profeet, sabbat
+HSV: Pascha: lam, bloed, feest, exodus, verbond
+HSV: Paulus: apostel, brieven, heidenen, genade, geloof
+HSV: Pinksteren: geest, vuur, talen, apostelen, kerk
+HSV: Profeten: jesaia, jeremia, ezechiël, daniël, amos
+HSV: Profetie: visioen, droom, openbaring, teken, belofte
+HSV: Schepping: begin, aarde, hemel, licht, mens
+HSV: Satan: duivel, verzoeker, vijand, duisternis, slang
+HSV: Tabernakel: ark, altaar, priester, wierook, heiligdom
+HSV: Tempel: jeruzalem, gebed, offer, priester, aanbidding
+HSV: Verbond: belofte, bloed, eeuwig, wet, volk
+HSV: Vergeving: vergeving, genade, kruis, vrede, herstel
+HSV: Verrijzenis: opstanding, graf, engel, leven, overwinning
+HSV: Wet: gebod, sabbat, priester, offer, oordeel
+HSV: Zonde: zonde, schuld, overtreding, kwaad, ongerechtigheid
 NKJV: redemption: grace, salvation, cross, blood, forgiveness, atonement, resurrection, faith, mercy, freedom
 NKJV: israel: covenant, promise, land, tribes, jerusalem, temple, exile, return, nation, chosen
 NKJV: creation: beginning, earth, heavens, light, eden, man, woman, image, sea, dominion
@@ -61,4 +89,3 @@ NKJV: abraham: faith, promise, covenant, altar, sacrifice, blessing, seed, land,
 NKJV: joseph: dream, coat, egypt, slave, prison, famine, brothers, forgiveness, ruler, reunion
 NKJV: peter: fisherman, disciple, confession, denial, tears, restored, rock, apostle, preaching, martyr
 NKJV: john: beloved, apostle, gospel, love, truth, revelation, prophecy, light, elder, fellowship
-HSV: Geen_thema: Voeg zelf woorden toe

@@ -29,15 +29,16 @@ export default function FilterPanel({ queryWords, onSelectBook }) {
   }, [version, searchMode, queryWords.join(",")]);
 
   return (
-    <aside className="w-full lg:w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg h-max">
-      <h3 className="text-sm font-semibold mb-3">Filters</h3>
+    <aside className="w-full lg:w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg h-max 
+                      p-3 md:p-4 text-xs md:text-sm">
+      <h3 className="font-semibold mb-2 md:mb-3">Filters</h3>
 
       {/* Version toggle */}
-      <div className="mb-4 text-sm">
-        <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 mb-2">
+      <div className="mb-3 md:mb-4">
+        <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 mb-1.5 md:mb-2">
           <button
             onClick={() => setVersion("HSV")}
-            className={`flex-1 px-4 py-2 font-medium transition-colors ${
+            className={`flex-1 px-2 md:px-4 py-1.5 md:py-2 font-medium transition-colors ${
               version === "HSV"
                 ? "bg-indigo-600 text-white"
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -47,7 +48,7 @@ export default function FilterPanel({ queryWords, onSelectBook }) {
           </button>
           <button
             onClick={() => setVersion("NKJV")}
-            className={`flex-1 px-4 py-2 font-medium transition-colors ${
+            className={`flex-1 px-2 md:px-4 py-1.5 md:py-2 font-medium transition-colors ${
               version === "NKJV"
                 ? "bg-indigo-600 text-white"
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -61,7 +62,7 @@ export default function FilterPanel({ queryWords, onSelectBook }) {
         <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
           <button
             onClick={() => setSearchMode("exact")}
-            className={`flex-1 px-4 py-2 font-medium transition-colors ${
+            className={`flex-1 px-2 md:px-4 py-1.5 md:py-2 font-medium transition-colors ${
               searchMode === "exact"
                 ? "bg-indigo-600 text-white"
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -71,7 +72,7 @@ export default function FilterPanel({ queryWords, onSelectBook }) {
           </button>
           <button
             onClick={() => setSearchMode("fuzzy")}
-            className={`flex-1 px-4 py-2 font-medium transition-colors ${
+            className={`flex-1 px-2 md:px-4 py-1.5 md:py-2 font-medium transition-colors ${
               searchMode === "fuzzy"
                 ? "bg-indigo-600 text-white"
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -84,14 +85,14 @@ export default function FilterPanel({ queryWords, onSelectBook }) {
 
       {/* Book list */}
       <div>
-        <div className="text-sm font-medium mb-2">Boeken</div>
-        <div className="max-h-80 overflow-y-auto text-sm">
+        <div className="font-medium mb-1.5 md:mb-2">Boeken</div>
+        <div className="max-h-64 md:max-h-80 overflow-y-auto">
           {books
-            .filter((b) => (hits[b] || 0) > 0) // alleen tonen als er >0 hits zijn
+            .filter((b) => (hits[b] || 0) > 0)
             .map((b) => (
               <button
                 key={b}
-                className="w-full text-left px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between"
+                className="w-full text-left px-1.5 md:px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between"
                 onClick={() => onSelectBook(b)}
               >
                 <span>{b}</span>
