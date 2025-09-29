@@ -841,7 +841,7 @@ async function exportAll(fmt) {
               rows={2}
               value={extra}
               onChange={(e) => setExtra(e.target.value)}
-              placeholder="Kies hierboven een onderdeel uit. Voeg daarna eventueel extra instructies toe (optioneel). Let op: Hoe meer teksten en grafieken samengesteld en hoe beter je eigen notities, opmerkingen, vragen, hoe beter de output. Klik daarna op onderstaande knop."
+              placeholder="Kies hierboven een onderdeel uit. Voeg daarna in dit blok eventueel extra instructies toe (optioneel). Let op: Hoe meer teksten en grafieken samengesteld en hoe beter je eigen notities, opmerkingen, vragen, hoe beter de output. Klik daarna op onderstaande knop."
             />
 
             <div className="mt-3 flex items-center gap-2">
