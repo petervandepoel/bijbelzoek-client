@@ -149,11 +149,11 @@ function Sidebar() {
                     </button>
                     <div className="font-semibold mb-1">Uitleg</div>
                     {currentStep === 1 &&
-                      "Stap 1: Je bevindt je op de landingpage. Start hier met zoekwoorden, of stel ze zelf samen via stap 2 → Zoeken."}
+                      "Stap 1: Je bent je op de landingpage. Start hier met zoekwoorden, of stel ze zelf samen via stap 2 → Zoeken."}
                     {currentStep === 2 &&
-                      "Stap 2: Zoek en bewaar hier relevante teksten en grafieken. Ga daarna naar stap 3: Studie."}
+                      "Stap 2: Zoek en bewaar hier relevante teksten en grafieken. Ga daarna naar stap 3 -> Studie."}
                     {currentStep === 3 &&
-                      "Stap 3: Voeg notities en inzichten toe. Gebruik de AI-module voor een opzet voor Bijbelstudie, preek of sing-in. Daarna kun je exporteren."}
+                      "Stap 3: Voeg notities en inzichten toe. Gebruik de AI-module voor een opzet voor Bijbelstudie, preek of sing-in. Daarna kun je stap 4 -> exporteren."}
                     {currentStep === 4 &&
                       "Stap 4: Exporteer je teksten, grafieken, AI-resultaten en notities naar PDF of Word, of deel ze."}
                   </div>
