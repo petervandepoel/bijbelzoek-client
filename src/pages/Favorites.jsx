@@ -747,63 +747,12 @@ async function exportAll(fmt) {
 
   return (
     <section className="max-w-6xl mx-auto p-3 sm:p-4 space-y-6">
-      {/* Uitleg */}
-      {showHelp && (
-        <div className="rounded-xl border border-sky-200 bg-sky-50 dark:bg-sky-900/30 dark:border-sky-800 p-4 relative shadow-sm">
-          <button
-            onClick={dismissHelp}
-            className="absolute top-2 right-2 text-sky-700 dark:text-sky-200 hover:opacity-80"
-            aria-label="Uitleg sluiten"
-            title="Sluiten"
-          >
-            ×
-          </button>
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">📚</div>
-            <div>
-              <h2 className="text-base sm:text-lg font-semibold text-sky-900 dark:text-sky-100 mb-1">
-                Uitleg
-              </h2>
-               <p className="text-sm text-sky-900/90 dark:text-sky-100/90">
-                Op deze pagina vind je al je <strong>Bijbelteksten</strong> en <strong>Grafieken</strong> die je op <em>Zoek</em> hebt samengesteld.
-                Voeg in de notitie-blokken onder de teksten en grafieken je eigen inzichten, vragen en opmerkingen toe.
-                Gebruik daarna het AI-blok bovenin om op basis van jouw samengestelde input suggesties te krijgen voor
-                een <strong>Preek</strong>, <strong>Bijbelstudie</strong>, <strong>Sing-In</strong> of
-                <strong> Relevante nieuwsartikelen</strong> Na afloop kun je je resultaten export naar <strong>PDF</strong> of <strong>DOCX</strong>.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Sticky top bar */}
-    {/* Sticky top bar */}
-<div className="sticky top-0 z-20 -mx-3 sm:-mx-4">
-  <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-    <h1 className="text-lg sm:text-xl font-semibold m-0">Exporteren</h1>
-    <div className="flex items-center gap-2 flex-wrap">
-      <button
-        disabled={busyExport}
-        onClick={() => exportAll("pdf")}
-        className="inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-md border border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 disabled:opacity-60 transition"
-      >
-        Export PDF
-      </button>
-      <button
-        disabled={busyExport}
-        onClick={() => exportAll("docx")}
-        className="inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-md border border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 disabled:opacity-60 transition"
-      >
-        Export DOCX
-      </button>
-    </div>
-  </div>
-</div>
 
       {!hasAnyFav ? (
         <div className="max-w-3xl">
           <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800">
-            Je hebt nog geen teksten en/of grafieken geselecteerd. Maak eerst items favoriet.
+            Je hebt nog geen teksten en/of grafieken geselecteerd. Bewaar eerst Bijbelteksten en/of grafieken.
           </div>
           <div className="mt-3">
             <Link to="/zoeken" className="text-blue-600 hover:underline">» Ga naar Zoeken</Link>
@@ -876,46 +825,47 @@ async function exportAll(fmt) {
           </div>
 
           {/* AI-resultaten */}
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2">🤖 AI-resultaten</h3>
-            {aiResults.length === 0 ? (
-              <p className="text-gray-500">
-                Nog geen AI-resultaten. Zorg voor voldoende teksten en grafieken, en ga daarna naar de AI sectie hierboven (
-                <Link to="/" className="text-blue-600 hover:underline">Zoeken »</Link>
-                )
-              </p>
-            ) : (
-              <div className="grid gap-4">
-                {aiResults.map((r) => {
-                  const isProseOnly = r.kind === "bijbelstudie" || r.kind === "preek";
-                  return (
-                    <article key={r.id} className="border rounded-lg p-3 bg-white dark:bg-gray-900">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium">{r.title}</div>
-                        <button
-                          type="button"
-                          className="text-red-500 hover:text-red-600 text-sm"
-                          onClick={() => removeAiResult(r.id)}
-                        >
-                          Verwijderen
-                        </button>
-                      </div>
+{aiResults.length > 0 && (
+  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+    <h3 className="text-lg font-semibold mb-2">🤖 AI-resultaten</h3>
+    <div className="grid gap-4">
+      {aiResults.map((r) => {
+        const isProseOnly = r.kind === "bijbelstudie" || r.kind === "preek";
+        return (
+          <article key={r.id} className="border rounded-lg p-3 bg-white dark:bg-gray-900">
+            <div className="flex justify-between items-start mb-2">
+              <div className="font-medium">{r.title}</div>
+              <button
+                type="button"
+                className="text-red-500 hover:text-red-600 text-sm"
+                onClick={() => removeAiResult(r.id)}
+              >
+                Verwijderen
+              </button>
+            </div>
 
-                      {isProseOnly ? (
-                        r.text ? (
-                          <AiPretty text={r.text} />
-                        ) : (
-                          <p className="text-gray-500">Geen inhoud gevonden.</p>
-                        )
-                      ) : (
-                        <>{r.structured ? <AiResultCard result={r.structured} /> : <AiPretty text={r.text} />}</>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
+            {isProseOnly ? (
+              r.text ? (
+                <AiPretty text={r.text} />
+              ) : (
+                <p className="text-gray-500">Geen inhoud gevonden.</p>
+              )
+            ) : (
+              <>
+                {r.structured ? (
+                  <AiResultCard result={r.structured} />
+                ) : (
+                  <AiPretty text={r.text} />
+                )}
+              </>
             )}
-          </div>
+          </article>
+        );
+      })}
+    </div>
+  </div>
+)}
+
 
           {/* Teksten */}
           <div className="space-y-4">

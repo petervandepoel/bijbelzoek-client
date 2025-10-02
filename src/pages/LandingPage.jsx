@@ -137,25 +137,27 @@ export default function LandingPage() {
         </div>
 
         {/* Features */}
+           <div classname="mb-1 mt-4"> <div className="font-semibold mb-1 mt-4">Hoe werkt het?</div></div>
+
         <div className="mt-8 grid sm:grid-cols-2 gap-3">
           <FeatureCard
             icon={BookOpenCheck}
-            title="1. Leg de basis"
-            text="Verzamel bijbelteksten en inzichten voor je bijbelstudie, preek of sing-in."
+            title="Stap 1. Landingpage: Kies zoekwoorden of selecteer een thema"
+            text="Start hier je zoektocht om op basis van Bijbelteksten je preek-, bijbelstudie of sing-in voor te bereiden."
           />
           <FeatureCard
             icon={LineChart}
-            title="2. Zie patronen"
-            text="Ontdek verdeling per bijbelboek met grafieken."
+            title="Stap 2. Zoeken: Zie patronen, bewaar favorieten"
+            text="Vind en bewaar relevante Bijbelteksten en grafieken."
           />
           <FeatureCard
             icon={Brain}
-            title="3. Verrijk met AI"
-            text="Ontvang input voor bijbelstudie, preek of sing-in."
+            title="Stap 3: Studie => Verrijk (met AI)"
+            text="Voeg je eigen notities/vragen toe bij je bewaarde selectie, en gebruik de AI module voor meer informatie / tips."
           />
           <FeatureCard
             icon={Download}
-            title="4. Exporteer & deel"
+            title="Stap 4: Export => Exporteer & deel"
             text="Download teksten, grafieken en notities (PDF/DOCX) en gebruik dit voor verdere studie."
           />
         </div>

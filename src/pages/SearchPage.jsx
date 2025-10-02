@@ -284,46 +284,7 @@ export default function SearchPage() {
   return (
     <section ref={topRef} className="max-w-7xl mx-auto flex flex-col">
       {/* Uitleg */}
-      {showHelp && (
-        <div className="mx-1 mb-3 rounded-xl border border-sky-200 bg-sky-50 dark:bg-sky-900/30 dark:border-sky-800 p-4 relative shadow-sm">
-          <button
-            onClick={dismissHelp}
-            className="absolute top-2 right-2 text-sky-700 dark:text-sky-200 hover:opacity-80"
-            aria-label="Uitleg sluiten"
-            title="Sluiten"
-          >
-            ×
-          </button>
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">📚</div>
-            <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-semibold text-sky-900 dark:text-sky-100 mb-1">
-                Uitleg
-              </h2>
-              <p className="text-sm text-sky-900/90 dark:text-sky-100/90">
-                Zoek op basis van <strong>zoekwoorden</strong> of{" "}
-                <strong>thema’s</strong> naar relevante teksten in de Bijbel. Gebruik de{" "}
-                <strong>grafiek (klikbaar!)</strong> of de filters om te zoeken per Bijbelboek.
-                Bewaar daarna <strong>teksten</strong> en de <strong>grafiek</strong> als favoriet: zo bouw je je eigen selectie op.
-                Klaar met samenstellen? Ga door naar{" "}
-                <Link
-                  to="/favorites"
-                  className="text-indigo-700 underline hover:no-underline"
-                >
-                  Studeer
-                </Link>{" "}
-                om je resultaten te verrijken.
-              </p>
-              {isMobile && (
-                <p className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">
-                  ⚠️ Je bezoekt deze site met een klein(er) scherm waardoor de site minder prettig werkt.
-                  We bevelen een tablet/PC aan voor optimaal resultaat.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+    
 
       {/* zoekbalk */}
       <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 px-1 pb-3">
