@@ -24,12 +24,11 @@ function useClickAway(ref, onAway) {
   }, [ref, onAway]);
 }
 
-function Sidebar() {
+function Sidebar({ collapsed, setCollapsed, onResetNotice }) {
   const location = useLocation();
   const navigate = useNavigate();
   const app = useApp?.() || {};
 
-  const [collapsed, setCollapsed] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef(null);
@@ -64,7 +63,7 @@ function Sidebar() {
     <aside
       className={`${
         collapsed ? "w-14" : "w-56"
-      } bg-gray-100 border-r border-gray-300 flex flex-col transition-all duration-300`}
+      } bg-gray-100 border-r border-gray-300 flex flex-col transition-all duration-300 fixed top-0 left-0 bottom-0`}
     >
       {/* Top: logo + collapse */}
       <div className="flex items-center justify-between p-3 border-b border-gray-300">
@@ -109,7 +108,11 @@ function Sidebar() {
                     }
                   }}
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium text-left transition-colors
-                    ${active ? "bg-yellow-300 text-indigo-900" : "hover:bg-yellow-100 text-gray-800"}
+                    ${
+                      active
+                        ? "bg-yellow-300 text-indigo-900"
+                        : "hover:bg-yellow-100 text-gray-800"
+                    }
                     ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <span className="font-bold">{s.id}</span>
@@ -169,7 +172,10 @@ function Sidebar() {
         <BeginOpnieuwButton
           label="Begin opnieuw"
           className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg px-3 py-2 text-sm"
-          onClick={() => setShowHelp(true)}
+          onClick={() => {
+            setShowHelp(true);
+            onResetNotice();
+          }}
         />
       </div>
     </aside>
@@ -177,10 +183,69 @@ function Sidebar() {
 }
 
 export default function App() {
+  const [showSmallScreenNotice, setShowSmallScreenNotice] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    function checkWidth() {
+      if (window.innerWidth < 864) {
+        setCollapsed(true);
+        setShowSmallScreenNotice(true);
+      } else {
+        setCollapsed(false);
+        setShowSmallScreenNotice(false);
+      }
+    }
+
+    // check bij laden
+    checkWidth();
+
+    // luister naar resize
+    window.addEventListener("resize", checkWidth);
+    return () => window.removeEventListener("resize", checkWidth);
+  }, []);
+
+  const resetNotice = () => {
+    if (window.innerWidth < 864) {
+      setShowSmallScreenNotice(true);
+      setCollapsed(true);
+    } else {
+      setShowSmallScreenNotice(false);
+      setCollapsed(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-gray-50 text-gray-900">
-      <Sidebar />
-      <main className="flex-1 p-4 overflow-y-auto">
+      <Sidebar
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+        onResetNotice={resetNotice}
+      />
+      <main className="flex-1 p-4 overflow-y-auto ml-14 md:ml-56">
+        {showSmallScreenNotice && (
+          <div
+            className={`mb-4 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded relative 
+              transition-opacity duration-500 ease-in-out opacity-100`}
+          >
+            <button
+              onClick={() => setShowSmallScreenNotice(false)}
+              className="absolute top-1 right-2 text-yellow-700 hover:text-yellow-900"
+            >
+              ✕
+            </button>
+            <p className="font-semibold">Let op!</p>
+            <p>
+              U bezoekt deze site via een klein scherm. Hierdoor functioneert
+              met name de grafiek functionaliteit minder goed. Voor optimaal
+              resultaat raden wij een tablet/pc aan.
+            </p>
+            <p className="mt-2">
+              Het menu is bij kleinere schermen standaard ingeklapt. Druk op{" "}
+              <strong>≡</strong> linksboven om het menu te openen.
+            </p>
+          </div>
+        )}
         <Outlet />
       </main>
     </div>
