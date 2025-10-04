@@ -186,24 +186,17 @@ export default function App() {
   const [showSmallScreenNotice, setShowSmallScreenNotice] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  useEffect(() => {
-    function checkWidth() {
-      if (window.innerWidth < 864) {
-        setCollapsed(true);
-        setShowSmallScreenNotice(true);
-      } else {
-        setCollapsed(false);
-        setShowSmallScreenNotice(false);
-      }
-    }
+useEffect(() => {
+  // Check slechts één keer bij laden
+  if (window.innerWidth < 864) {
+    setCollapsed(true);
+    setShowSmallScreenNotice(true);
+  } else {
+    setCollapsed(false);
+    setShowSmallScreenNotice(false);
+  }
+}, []);
 
-    // check bij laden
-    checkWidth();
-
-    // luister naar resize
-    window.addEventListener("resize", checkWidth);
-    return () => window.removeEventListener("resize", checkWidth);
-  }, []);
 
   const resetNotice = () => {
     if (window.innerWidth < 864) {
